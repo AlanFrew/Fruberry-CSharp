@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30804.86
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fruberry", "Fruberry\Fruberry.csproj", "{0A349157-E2F0-4948-984F-8F1440EAAB45}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fruberry.Tests", "Fruberry.Tests\Fruberry.Tests.csproj", "{B9A54B1E-7B7D-4B59-85DF-B1940FE8DD00}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0A349157-E2F0-4948-984F-8F1440EAAB45}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A349157-E2F0-4948-984F-8F1440EAAB45}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A349157-E2F0-4948-984F-8F1440EAAB45}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A349157-E2F0-4948-984F-8F1440EAAB45}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9A54B1E-7B7D-4B59-85DF-B1940FE8DD00}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9A54B1E-7B7D-4B59-85DF-B1940FE8DD00}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9A54B1E-7B7D-4B59-85DF-B1940FE8DD00}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9A54B1E-7B7D-4B59-85DF-B1940FE8DD00}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2614D69E-3463-476F-A163-4DC557CA7150}
+	EndGlobalSection
+EndGlobal

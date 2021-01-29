@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+/Fruberry/Fruberry/bin/Debug
+/Fruberry/Fruberry/obj
+/Fruberry/Fruberry.Tests/bin/Debug/netcoreapp3.1
+/Fruberry/Fruberry.Tests/obj
+/.vs
+/Fruberry/.vs/Fruberry
