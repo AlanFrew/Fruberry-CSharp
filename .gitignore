@@ -36,3 +36,8 @@
 /Fruberry/Fruberry.Tests/obj
 /.vs
 /Fruberry/.vs/Fruberry
+/Fruberry/bin/Debug
+/Fruberry/obj
+/Fruberry.Tests/bin/Debug/netcoreapp3.1
+/Fruberry.Tests/obj/Debug/netcoreapp3.1/.NETCoreApp,Version=v3.1.AssemblyAttributes.cs
+/Fruberry.Tests/obj
