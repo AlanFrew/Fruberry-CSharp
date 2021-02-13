@@ -4,7 +4,7 @@ using System;
 using System.Diagnostics;
 using System.Text;
 
-namespace BusyBeaver {
+namespace Fruberry {
     public class Chainlink<T> {
         public Chainlink<T> Previous;
         public Chainlink<T> Next;

@@ -5,15 +5,15 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
-namespace BusyBeaver {
+namespace Fruberry.Tests {
     public class ChainTests {
         [Test]
         public void ChainAdd() {
             var chain = new Chain<string>();
 
-            foreach (var link in chain) { } //assert that enumeration works properly
+            foreach (var _ in chain) { } //assert that enumeration works properly
 
-            foreach (var value in (IEnumerable)chain) { } //assert that enumeration works properly
+            foreach (var _ in (IEnumerable)chain) { } //assert that enumeration works properly
 
             Assert.That(chain.Count == 0);
 
