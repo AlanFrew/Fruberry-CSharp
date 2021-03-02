@@ -78,9 +78,9 @@ namespace Fruberry {
 
         bool ICollection<T>.IsReadOnly => false;
 
-        bool IList.IsFixedSize => throw new NotImplementedException();
+        bool IList.IsFixedSize => false;
 
-        bool IList.IsReadOnly => throw new NotImplementedException();
+        bool IList.IsReadOnly => false;
 
         object IList.this[int index] { get => this[index]; set => this[index] = (T)value; }
 
