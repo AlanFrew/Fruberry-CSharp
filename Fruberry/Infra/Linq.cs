@@ -29,11 +29,17 @@ namespace Fruberry {
             return false;
         }
 
-        //public static int Count(this Array source) {
-        //    return source.Length;
-        //}
+        public static bool Contains<T>(this ICollection<T> source, string match) where T : IEnumerable<char> {
 
-        public static bool Contains(this List<IEnumerable<char>> source, string match) {
+            return ((IEnumerable<IEnumerable<char>>)source).Contains(match);
+        }
+
+        public static bool Contains<T>(this IEnumerable<T> source, string match) where T : IEnumerable<char> {
+
+            return ((IEnumerable<IEnumerable<char>>)source).Contains(match);
+        }
+
+        public static bool Contains(this IList<IEnumerable<char>> source, string match) {
 
             return ((IEnumerable<IEnumerable<char>>)source).Contains(match);
         }
@@ -46,6 +52,12 @@ namespace Fruberry {
         public static bool Contains(this IEnumerable<List<char>> source, string match) {
 
             return ((IEnumerable<IEnumerable<char>>)source).Contains(match);
+        }
+
+        public static bool One<T>(this IEnumerable<T> source, Func<T, bool> selector) {
+            if (source.Count() == 1 && selector(source.First())) return true;
+
+            return false;
         }
 
         public static bool IsEqual(this IEnumerable<char> source, string match) {

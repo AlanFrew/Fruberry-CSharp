@@ -3,38 +3,55 @@ using System.Linq;
 using System.Text;
 
 namespace Fruberry {
-    public class CharTrieNode {
-        public bool IsTerminal { get; set; }
-        public char Value { get; set; }
-        public Dictionary<char, CharTrieNode> Children { get; set; }
+    public class CharTrie : IStructure<char> {
+        public class Node {
+            public bool IsTerminal { get; set; }
+            public char Value { get; set; }
 
-        public CharTrieNode(char value) {
-            Value = value;
-            Children = new Dictionary<char, CharTrieNode>();
+            public Dictionary2<char, Node> Children { get; set; }
+
+            public Node(char value) {
+                Value = value;
+                Children = new Dictionary2<char, Node>();
+            }
+
+            public Node FindChild(char c) {
+                return Children.ContainsKey(c) ? Children[c] : null;
+            }
+
+            public override string ToString() {
+                return Value == default(char) ? "<no value>" : Value.ToString();
+            }
         }
 
-        public CharTrieNode FindChildNode(char c) {
-            return Children.ContainsKey(c) ? Children[c] : null;
-        }
+        private readonly Node _root; //Contains no real data
 
-        public override string ToString() {
-            return Value == default(char) ? "<no value>" : Value.ToString();
-        }
-    }
+        public IList<Prefer> Constraints => new[] { Prefer.NoDupes, Prefer.Find };
 
-    public class CharTrie {
-        private readonly CharTrieNode _root;
+        public int Length { get; protected set; }
+
+        int IStructure<char>.Length { get => Length; set => Length = value; }
+
+        int ICollection<char>.Count => Length;
+
+        public bool IsReadOnly => false;
+
+        int System.Collections.ICollection.Count => Length;
+
+        public bool IsSynchronized => false;
+
+        public object SyncRoot => null;
 
         public CharTrie() {
-            _root = new CharTrieNode(default);
+            _root = new Node(default);
         }
 
-        public CharTrieNode Prefix(string s) {
+        public Node Prefix(string s) {
             var currentNode = _root;
             var result = currentNode;
 
             foreach (var c in s) {
-                currentNode = currentNode.FindChildNode(c);
+                currentNode = currentNode.FindChild(c);
                 if (currentNode == null) break;
                 result = currentNode;
             }
@@ -42,14 +59,14 @@ namespace Fruberry {
             return result;
         }
 
-        public List<CharTrieNode> PrefixPath(string s) {
+        public List<Node> PrefixPath(string s) {
             var currentNode = _root;
-            var foo = new List<CharTrieNode>();
+            var foo = new List<Node>();
 
             var result = currentNode;
 
             foreach (var c in s) {
-                currentNode = currentNode.FindChildNode(c);
+                currentNode = currentNode.FindChild(c);
                 if (currentNode == null) break;
                 else foo.Add(currentNode);
 
@@ -61,10 +78,10 @@ namespace Fruberry {
 
         public bool ContainsExact(string s) {
             var currentNode = _root;
-            CharTrieNode nextNode = null;
+            Node nextNode = null;
 
             foreach(var ch in s) {
-                nextNode = currentNode.FindChildNode(ch);
+                nextNode = currentNode.FindChild(ch);
 
                 if (nextNode == null) {
                     return false;
@@ -77,11 +94,11 @@ namespace Fruberry {
         }
 
         public List<string> GetMatches(string s) {
-            var matches = new List<List<CharTrieNode>>();
+            var matches = new List<List<Node>>();
 
             var prefixPath = PrefixPath(s);
 
-            var stack = new Stack<CharTrieNode>(prefixPath);
+            var stack = new Stack<Node>(prefixPath);
 
             foreach (var _ in prefixPath.Last().Children) {
                 matches.AddRange(GetMatchesInner(stack, matches));
@@ -113,9 +130,9 @@ namespace Fruberry {
             return result;
         }
 
-        private List<List<CharTrieNode>> GetMatchesInner(Stack<CharTrieNode> stack, List<List<CharTrieNode>> results) {
+        private List<List<Node>> GetMatchesInner(Stack<Node> stack, List<List<Node>> results) {
             if (stack.Peek().IsTerminal) {
-                results.Add(new List<CharTrieNode>(stack));
+                results.Add(new List<Node>(stack));
             }
 
             foreach (var child in stack.Peek().Children) {
@@ -136,11 +153,11 @@ namespace Fruberry {
         public CharTrie Add(string s) {
             var current = _root;
             for (var i = 0; i < s.Length; i++) {
-                if (current.FindChildNode(s[i]) == null) {
-                    current.Children.Add(s[i], new CharTrieNode(s[i]));
+                if (current.FindChild(s[i]) == null) {
+                    current.Children.Add(s[i], new Node(s[i]));
                 }
 
-                current = current.FindChildNode(s[i]);
+                current = current.FindChild(s[i]);
             }
 
             current.IsTerminal = true;
@@ -149,13 +166,13 @@ namespace Fruberry {
         }
 
         public void Delete(string s) {
-            var possibleDeletions = new Stack<CharTrieNode>();
+            var possibleDeletions = new Stack<Node>();
             possibleDeletions.Push(_root);
 
             var currentNode = _root;
 
             foreach (var ch in s) {
-                var nextNode = currentNode.FindChildNode(ch);
+                var nextNode = currentNode.FindChild(ch);
 
                 if (nextNode != null) {
                     possibleDeletions.Push(nextNode);
@@ -177,5 +194,64 @@ namespace Fruberry {
             }
         }
 
+        public IStructure<char> Add(char item) {
+            throw new System.NotImplementedException();
+        }
+
+        public bool Remove(char item) {
+            throw new System.NotImplementedException();
+        }
+
+        public int Count() {
+            throw new System.NotImplementedException();
+        }
+
+        public bool Contains(char item) {
+            throw new System.NotImplementedException();
+        }
+
+        public IStructure<char> Clear() {
+            throw new System.NotImplementedException();
+        }
+
+        public char Pop() {
+            throw new System.NotImplementedException();
+        }
+
+        public char Peek() {
+            throw new System.NotImplementedException();
+        }
+
+        public IStructure<char> Enqueue(char item) {
+            throw new System.NotImplementedException();
+        }
+
+        public char Dequeue() {
+            throw new System.NotImplementedException();
+        }
+
+        void ICollection<char>.Add(char item) {
+            throw new System.NotImplementedException();
+        }
+
+        void ICollection<char>.Clear() {
+            throw new System.NotImplementedException();
+        }
+
+        public void CopyTo(char[] array, int arrayIndex) {
+            throw new System.NotImplementedException();
+        }
+
+        public IEnumerator<char> GetEnumerator() {
+            throw new System.NotImplementedException();
+        }
+
+        public void CopyTo(System.Array array, int index) {
+            throw new System.NotImplementedException();
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() {
+            throw new System.NotImplementedException();
+        }
     }
 }

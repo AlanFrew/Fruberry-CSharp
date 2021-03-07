@@ -5,7 +5,7 @@ namespace Fruberry {
     public class TrieNode<T> {
         public bool IsMatch { get; set; }
         public T Value { get; set; }
-        public Dictionary<T, TrieNode<T>> Children { get; set; }
+        public Dictionary2<T, TrieNode<T>> Children { get; set; }
 
         public TrieNode(T value) {
             Value = value;
@@ -80,17 +80,16 @@ namespace Fruberry {
         public IEnumerable<IEnumerable<T>> GetMatches(IEnumerable<T> s) {
             var prefixPath = PrefixPath(s);
 
-            if (prefixPath.None()) return Enumerable.Empty<IEnumerable<T>>();
+            if (prefixPath.None()) return new List<IEnumerable<T>>();
 
-            var matches = new List<T[]>();
+            var matches = new List<IEnumerable<T>>();
 
             var children = prefixPath[^1].Children;
 
             if (children != null) {
-                var stack = new List<TrieNode<T>>(prefixPath);
 
                 foreach (var _ in children) {
-                    GetMatchesInner(matches, stack, prefixPath.Count - 1, prefixPath[0] == _root);
+                    GetMatchesInner(matches, prefixPath, prefixPath.Count - 1, prefixPath[0] == _root);
                 }
             }
             else {
@@ -100,13 +99,13 @@ namespace Fruberry {
                     result[i] = prefixPath[i].Value;
                 }
 
-                matches.Add(result);
+                matches.Add(Join(prefixPath));
             }
 
             return matches;
         }
 
-        private List<T[]> GetMatchesInner(List<T[]> results, List<TrieNode<T>> stack, int stackIndex, bool containsRoot) {
+        private List<IEnumerable<T>> GetMatchesInner(List<IEnumerable<T>> results, List<TrieNode<T>> stack, int stackIndex, bool containsRoot) {
             if (stack[stackIndex].IsMatch) {
                 if (containsRoot) {
                     var result = new T[stackIndex];
@@ -156,7 +155,7 @@ namespace Fruberry {
 
             foreach (var item in s) {
                 if (current.GetChild(item) == null) {
-                    if (current.Children == null) current.Children = new Dictionary<T, TrieNode<T>>();
+                    if (current.Children == null) current.Children = new Dictionary2<T, TrieNode<T>>();
 
                     current.Children.Add(item, new TrieNode<T>(item));
                 }
@@ -212,13 +211,22 @@ namespace Fruberry {
         }
 
         public static IEnumerable<T> Join(IEnumerable<TrieNode<T>> source) {
-            var result = new List<T>(source.Count());
+            var result = new T[source.Count()];
 
+            int index = 0;
             foreach (var node in source) {
-                result.Add(node.Value);
+                result[index] = node.Value;
+
+                index++;
             }
 
             return result;
+        }
+
+        public IEnumerable<IEnumerable<T>> this[IEnumerable<T> stem] {
+            get {
+                return GetMatches(stem);
+            }
         }
 
         void ICollection<IEnumerable<T>>.Add(IEnumerable<T> item) {

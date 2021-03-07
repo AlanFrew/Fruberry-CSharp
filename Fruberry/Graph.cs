@@ -4,30 +4,35 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace Fruberry {
-    public class Graph<T> : ICollection<T>{
+    public class Graph<T> : IStructure<T>{
         //public List<GraphNode<T>> Nodes;
-        public Dictionary<T, List<T>> Nodes;
+        public Dictionary2<T, List<T>> Nodes; //TODO: Replace with IStructure
 
-        int ICollection<T>.Count => Nodes?.Count ?? 0;
+        public int Length { get => Nodes?.Count ?? 0; protected set { } } //TODO: Fix when dictionary is replaced
+
+        public int Count => Length;
+
+        int IStructure<T>.Count() { return Length; }
+
+        int IStructure<T>.Length {
+            get => Length;
+            set => Length = value;
+        }
 
         bool ICollection<T>.IsReadOnly => false;
 
+        public IList<Prefer> Constraints => new[] { Prefer.AllowDupes };
+
+        public bool IsSynchronized => false;
+
+        public object SyncRoot => null;
+
         void ICollection<T>.Add(T item) {
-            if (Nodes == null) {
-                //Nodes = new List<GraphNode<T>>();
-                Nodes = new Dictionary<T, List<T>>();
-            }
-
-            //Nodes.Add(new GraphNode<T> {
-            //    Value = item
-            //});
-            Nodes[item] = null;
-
-            //Nodes[item].Add(item);
+            Add(item);
         }
 
         public Graph<T> Add(T item) {
-            if (Nodes == null) Nodes = new Dictionary<T, List<T>>();
+            if (Nodes == null) Nodes = new Dictionary2<T, List<T>>();
 
             Nodes[item] = null;
 
@@ -35,7 +40,7 @@ namespace Fruberry {
         }
 
         public Graph<T> Add(T item, List<T> neighbors) {
-            if (Nodes == null) Nodes = new Dictionary<T, List<T>>();
+            if (Nodes == null) Nodes = new Dictionary2<T, List<T>>();
 
             Nodes[item] = neighbors;
 
@@ -43,7 +48,7 @@ namespace Fruberry {
         }
 
         public Graph<T> AddNeighbors(T item, List<T> neighbors) {
-            if (Nodes == null) Nodes = new Dictionary<T, List<T>>();
+            if (Nodes == null) Nodes = new Dictionary2<T, List<T>>();
 
             if (Nodes.ContainsKey(item) == false) {
                 Nodes[item] = neighbors;
@@ -74,8 +79,14 @@ namespace Fruberry {
             return null;
         }
 
-        void ICollection<T>.Clear() {
+        public Graph<T> Clear() {
             Nodes = null;
+
+            return this;
+        }
+
+        void ICollection<T>.Clear() {
+            Clear();
         }
 
         bool ICollection<T>.Contains(T item) {
@@ -103,22 +114,53 @@ namespace Fruberry {
             throw new NotImplementedException();
         }
 
-        bool ICollection<T>.Remove(T item) {
-            if (Nodes == null) return false;
+        public bool Remove(T item) {
+            return Nodes.Remove(item);
+        }
 
-            var size = Nodes.Count;
-            Nodes = null;// Nodes.Where(node => !node.Value.Equals(item)).ToDictionary(_ => _.Key, _ => _.Value);
+        public bool Contains(T item) {
+            return Nodes.ContainsKey(item);
+        }
 
-            return size != Nodes.Count;
+        public T Pop() {
+            var result = Nodes.First();
+
+            Nodes.Remove(result.Key);
+
+            return result.Key;
+        }
+
+        public T Peek() {
+            return Nodes.First().Key;
+        }
+
+        public IStructure<T> Enqueue(T item) {
+            return Add(item);
+        }
+
+        public T Dequeue() {
+            return Pop();
+        }
+
+        public void CopyTo(Array array, int index) {
+            throw new NotImplementedException();
+        }
+
+        IStructure<T> IStructure<T>.Clear() {
+            return Clear();
+        }
+
+        IStructure<T> IStructure<T>.Add(T item) {
+            return Add(item);
         }
 
 #pragma warning disable CS0693 // Type parameter has the same name as the type parameter from outer type
         public struct Enumerator<T> : IEnumerator<T> {
             //private List<GraphNode<T>> collection;
-            private Dictionary<T, List<T>> collection;
+            private Dictionary2<T, List<T>> collection;
 
             //private int currentIndex;
-            private Dictionary<T, List<T>>.Enumerator enumerator;
+            private Dictionary2<T, List<T>>.Enumerator enumerator;
 
             //private T current = Nodes.Keys.First();
             T IEnumerator<T>.Current => Current; //implements IEnumerable<T>

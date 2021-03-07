@@ -7,7 +7,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fruberry", "Fruberry\Fruber
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fruberry.Tests", "Fruberry.Tests\Fruberry.Tests.csproj", "{B9A54B1E-7B7D-4B59-85DF-B1940FE8DD00}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fruberry.Nuget.Test", "Fruberry.Nuget.Test\Fruberry.Nuget.Test.csproj", "{6233B4D0-51BC-4FE4-844C-C52305290357}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fruberry.Nuget.Test", "Fruberry.Nuget.Test\Fruberry.Nuget.Test.csproj", "{6233B4D0-51BC-4FE4-844C-C52305290357}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{29B795CF-592A-4CD2-8F09-74885B912FB1}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

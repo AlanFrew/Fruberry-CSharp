@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Fruberry {
     public class Map<TKey, TValue> :IDictionary<TKey, TValue> {
-        private Dictionary<TKey, TValue> Internal = new Dictionary<TKey, TValue>();
+        private Dictionary2<TKey, TValue> Internal = new Dictionary2<TKey, TValue>();
 
         TValue IDictionary<TKey, TValue>.this[TKey key] {
             get {

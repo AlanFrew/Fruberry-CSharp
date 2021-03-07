@@ -14,7 +14,7 @@
     [DebuggerDisplay("Count = {Count}")]
     [Serializable]
     [System.Runtime.InteropServices.ComVisible(false)]
-    public class Dictionary<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary, IReadOnlyDictionary<TKey, TValue>, ISerializable, IDeserializationCallback {
+    public class Dictionary2<TKey, TValue> : IDictionary<TKey, TValue>, IDictionary, IReadOnlyDictionary<TKey, TValue>, ISerializable, IDeserializationCallback {
 
         private struct Entry {
             public int hashCode;    // Lower 31 bits of hash code, -1 if unused
@@ -40,21 +40,21 @@
         private const string KeyValuePairsName = "KeyValuePairs";
         private const string ComparerName = "Comparer";
 
-        public Dictionary() : this(0, null) { }
+        public Dictionary2() : this(0, null) { }
 
-        public Dictionary(int capacity) : this(capacity, null) { }
+        public Dictionary2(int capacity) : this(capacity, null) { }
 
-        public Dictionary(IEqualityComparer<TKey> comparer) : this(0, comparer) { }
+        public Dictionary2(IEqualityComparer<TKey> comparer) : this(0, comparer) { }
 
-        public Dictionary(int capacity, IEqualityComparer<TKey> comparer) {
+        public Dictionary2(int capacity, IEqualityComparer<TKey> comparer) {
             //if (capacity < 0) ThrowHelper.ThrowArgumentOutOfRangeException(ExceptionArgument.capacity);
             if (capacity > 0) Initialize(capacity);
             this.comparer = comparer ?? EqualityComparer<TKey>.Default;
         }
 
-        public Dictionary(IDictionary<TKey, TValue> dictionary) : this(dictionary, null) { }
+        public Dictionary2(IDictionary<TKey, TValue> dictionary) : this(dictionary, null) { }
 
-        public Dictionary(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey> comparer) :
+        public Dictionary2(IDictionary<TKey, TValue> dictionary, IEqualityComparer<TKey> comparer) :
             this(dictionary != null ? dictionary.Count : 0, comparer) {
 
             if (dictionary == null) {
@@ -66,7 +66,7 @@
             }
         }
 
-        protected Dictionary(SerializationInfo info, StreamingContext context) {
+        protected Dictionary2(SerializationInfo info, StreamingContext context) {
             //We can't do anything with the keys and values until the entire graph has been deserialized
             //and we have a resonable estimate that GetHashCode is not going to fail.  For the time being,
             //we'll just cache this.  The graph is not valid until OnDeserialization has been called.
@@ -230,7 +230,6 @@
         }
 
         private void Insert(TKey key, TValue value, bool add) {
-
             if (key == null) {
                 throw new Exception();
             }
@@ -561,7 +560,7 @@
         [Serializable]
         public struct Enumerator : IEnumerator<KeyValuePair<TKey, TValue>>,
             IDictionaryEnumerator {
-            private Dictionary<TKey, TValue> dictionary;
+            private Dictionary2<TKey, TValue> dictionary;
             private int version;
             private int index;
             private KeyValuePair<TKey, TValue> current;
@@ -570,7 +569,7 @@
             internal const int DictEntry = 1;
             internal const int KeyValuePair = 2;
 
-            internal Enumerator(Dictionary<TKey, TValue> dictionary, int getEnumeratorRetType) {
+            internal Enumerator(Dictionary2<TKey, TValue> dictionary, int getEnumeratorRetType) {
                 this.dictionary = dictionary;
                 version = dictionary.version;
                 index = 0;
@@ -663,9 +662,9 @@
         [DebuggerDisplay("Count = {Count}")]
         [Serializable]
         public sealed class KeyCollection : ICollection<TKey>, ICollection, IReadOnlyCollection<TKey> {
-            private Dictionary<TKey, TValue> dictionary;
+            private Dictionary2<TKey, TValue> dictionary;
 
-            public KeyCollection(Dictionary<TKey, TValue> dictionary) {
+            public KeyCollection(Dictionary2<TKey, TValue> dictionary) {
                 if (dictionary == null) {
                     throw new Exception();
                 }
@@ -775,12 +774,12 @@
 
             [Serializable]
             public struct Enumerator : IEnumerator<TKey>, IEnumerator {
-                private Dictionary<TKey, TValue> dictionary;
+                private Dictionary2<TKey, TValue> dictionary;
                 private int index;
                 private int version;
                 private TKey currentKey;
 
-                internal Enumerator(Dictionary<TKey, TValue> dictionary) {
+                internal Enumerator(Dictionary2<TKey, TValue> dictionary) {
                     this.dictionary = dictionary;
                     version = dictionary.version;
                     index = 0;
@@ -836,9 +835,9 @@
         [DebuggerDisplay("Count = {Count}")]
         [Serializable]
         public sealed class ValueCollection : ICollection<TValue>, ICollection, IReadOnlyCollection<TValue> {
-            private Dictionary<TKey, TValue> dictionary;
+            private Dictionary2<TKey, TValue> dictionary;
 
-            public ValueCollection(Dictionary<TKey, TValue> dictionary) {
+            public ValueCollection(Dictionary2<TKey, TValue> dictionary) {
                 if (dictionary == null) {
                     throw new Exception();
                 }
@@ -947,12 +946,12 @@
 
             [Serializable]
             public struct Enumerator : IEnumerator<TValue>, IEnumerator {
-                private Dictionary<TKey, TValue> dictionary;
+                private Dictionary2<TKey, TValue> dictionary;
                 private int index;
                 private int version;
                 private TValue currentValue;
 
-                internal Enumerator(Dictionary<TKey, TValue> dictionary) {
+                internal Enumerator(Dictionary2<TKey, TValue> dictionary) {
                     this.dictionary = dictionary;
                     version = dictionary.version;
                     index = 0;

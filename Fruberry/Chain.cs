@@ -34,19 +34,29 @@ namespace Fruberry {
     }
 
     //TODO: Implement interfaces of list, linkedlist, dictionary, hashset
-    //TODO: Throw exceptiosn flag
+    //TODO: Throw exceptions flag
     /// <summary>
     /// A data structure with fast addtion and removal that can be modified while enumerating
     /// </summary>
     /// <typeparam name="T">The base type of object to store</typeparam>
     /// <remarks>Implemented as a doubly linked list</remarks>
-    public class Chain<T> : IEnumerable<T>, IEnumerable, ICollection, ICollection<T>, IList, IList<T> {
+    public class Chain<T> : IStructure<T>, IList, IList<T> {
         public Chainlink<T> Head;
         public Chainlink<T> Tail;
+
         public T First => Head == null ? default : Head.Value;
         public T Last => Tail == null ? default : Tail.Value;
-        public int Count { get; protected set; }
-        public int Length => Count;
+
+        public int Length { get; protected set; }
+
+        public int Count => Length;
+
+        int IStructure<T>.Count() { return Length; }
+
+        int IStructure<T>.Length {
+            get => Length;
+            set => Length = value;
+        }
 
         protected static Func<T, T, bool> comparer;
         public static Func<T, T, bool> Comparer {
@@ -68,13 +78,9 @@ namespace Fruberry {
             set => comparer = value;
         }
 
-        int ICollection.Count => Count;
-
         bool ICollection.IsSynchronized => false;
 
         object ICollection.SyncRoot => null;
-
-        int ICollection<T>.Count => Count;
 
         bool ICollection<T>.IsReadOnly => false;
 
@@ -162,7 +168,45 @@ namespace Fruberry {
                 Tail = chainlink;
             }
 
-            Count++;
+            Length++;
+#if DEBUG
+            foreach (var chainlink2 in this) {
+                if (chainlink2.Previous != null && chainlink2.Previous.Next != chainlink2) Debugger.Break();
+                if (chainlink2.Next != null && chainlink2.Next.Previous != chainlink2) Debugger.Break();
+            }
+#endif
+            return this;
+        }
+
+        /// <summary>
+        /// Adds the given value to the beginning of the chain
+        /// </summary>
+        /// <param name="chainlink">The value to add</param>
+        /// <returns>A reference to the chain</returns>
+        public Chain<T> AddFirst(T value) {
+            var link = new Chainlink<T>(value);
+
+            return AddFirst(link);
+        }
+
+        /// <summary>
+        /// Adds the given chainlink to the beginning of the chain, making it the Head
+        /// </summary>
+        /// <param name="chainlink">The chainlink to add</param>
+        /// <returns>A reference to the chain</returns>
+        public Chain<T> AddFirst(Chainlink<T> chainlink) {
+            chainlink.Next = Head;
+
+            if (Head == null) {
+                Head = chainlink;
+                Tail = chainlink;
+            }
+            else {
+                Head.Previous = chainlink;
+                Head = chainlink;
+            }
+
+            Length++;
 #if DEBUG
             foreach (var chainlink2 in this) {
                 if (chainlink2.Previous != null && chainlink2.Previous.Next != chainlink2) Debugger.Break();
@@ -192,7 +236,7 @@ namespace Fruberry {
         }
 
         /// <summary>
-        /// Removed the given chainlink and its value, if the chainlink in the list
+        /// Removed the given chainlink and its value, if the chainlink is in the list
         /// </summary>
         /// <param name="chainlink">The chainlink to remove</param>
         /// <returns>True if the chainlink is valid and was in the list, false otherwise</returns>
@@ -210,7 +254,7 @@ namespace Fruberry {
             if (chainlink == Tail) Tail = chainlink.Previous;
             else chainlink.Next.Previous = chainlink.Previous;
 
-            Count--;
+            Length--;
 
 #if DEBUG
             foreach (var link in this) {
@@ -233,8 +277,8 @@ namespace Fruberry {
         /// <returns>A reference to the chain</returns>
         /// <remarks>Uses the Comparer static property to compare elements if present, otherwise tries to use the elements' IComparable interface</remarks>
         public Chain<T> Sort() {
-            if (Comparer != null && Count >= 2) {
-                var (head, tail) = SortInner(Head, Tail, Count);
+            if (Comparer != null && Length >= 2) {
+                var (head, tail) = SortInner(Head, Tail, Length);
                 Head = head;
                 Tail = tail;
                 Head.Previous = null;
@@ -282,10 +326,10 @@ namespace Fruberry {
             backHead.Previous = null;
             backTail.Next = null;
 
-            return Merge2(frontHead, frontTail, backHead, backTail);
+            return Merge(frontHead, frontTail, backHead, backTail);
         }
 
-        protected (Chainlink<T> front, Chainlink<T> back) Merge2(Chainlink<T> left, Chainlink<T> leftTail, Chainlink<T> right, Chainlink<T> rightTail) {
+        protected (Chainlink<T> front, Chainlink<T> back) Merge(Chainlink<T> left, Chainlink<T> leftTail, Chainlink<T> right, Chainlink<T> rightTail) {
             var tail = Comparer(leftTail.Value, rightTail.Value) ? rightTail : leftTail;
 
             Chainlink<T> head;
@@ -336,7 +380,7 @@ namespace Fruberry {
         /// <returns>A reference to the chain</returns>
         /// <remarks>Ensures that all elements are distinct if the Chain is in sorted order</remarks>
         public Chain<T> Dedupe() {
-            if (Count <= 1) return this;
+            if (Length <= 1) return this;
 
             var current = Head;
             if (typeof(IComparable).IsAssignableFrom(typeof(T))) {
@@ -350,7 +394,7 @@ namespace Fruberry {
                 }
             }
             else {
-                var count = Count - 1;
+                var count = Length - 1;
                 while (count >= 0 && current.Next != null) {
                     if (current.Value.Equals(current.Next.Value)) {
                         Remove(current.Next);
@@ -377,7 +421,7 @@ namespace Fruberry {
         }
 
         public Chain<T> Dedupe2() {
-            if (Count <= 1) return this;
+            if (Length <= 1) return this;
 
             var foundValues = new HashSet<T>() { Head.Value };
             var current = Head.Next;
@@ -392,7 +436,7 @@ namespace Fruberry {
             return this;
         }
 
-        public T this[int index] { //TODO: maybe implement this as a hashmap?
+        public T this[int index] { //TODO: maybe implement this as a Map?
             get {
                 var result = Head;
 
@@ -439,12 +483,6 @@ namespace Fruberry {
         #endregion
 
         #region ICollection<T>
-        void ICollection<T>.Clear() {
-            Head = null;
-            Tail = null;
-            Count = 0;
-        }
-
         bool ICollection<T>.Contains(T item) {
             foreach (var chainlink in this) {
                 if (chainlink.Value.Equals(item)) {
@@ -529,6 +567,52 @@ namespace Fruberry {
                 currentIndex++;
             }
         }
+
+        public bool Contains(T target) {
+            foreach(var item in this) {
+                if (item.Equals(target)) return true;
+            }
+
+            return false;
+        }
+
+        public IStructure<T> Clear() {
+            Head = null;
+            Tail = null;
+            Length = 0;
+
+            return this;
+        }
+
+        public T Pop() {
+            var result = Head.Value;
+
+            Remove(Head);
+
+            return result;
+        }
+
+        public T Peek() {
+            return Head.Value;
+        }
+
+        public IStructure<T> Enqueue(T item) {
+            return Add(item);
+        }
+
+        public T Dequeue() {
+            return Pop();
+        }
+
+        IStructure<T> IStructure<T>.Add(T item) {
+            return Add(item);
+        }
+
+        void ICollection<T>.Clear() {
+            Clear();
+        }
+
+        public IList<Prefer> Constraints => new[] { Prefer.AllowDupes, Prefer.NoCompare };
         #endregion
 
 #pragma warning disable CS0693 // Type parameter has the same name as the type parameter from outer type
