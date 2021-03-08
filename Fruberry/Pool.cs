@@ -4,10 +4,10 @@ using System.Collections.Generic;
 
 namespace Fruberry {
     public class Pool<T> : IStructure<T>{
-        private int PoolSize;
-        private Queue<T> Reservoir;
-        private List<T> ActiveItems;
-        private Func<T> Instantiator;
+        protected int PoolSize;
+        protected Queue<T> Reservoir;
+        protected List<T> ActiveItems;
+        protected Func<T> Instantiator;
 
         public int Length { get; protected set; }
 
@@ -37,7 +37,7 @@ namespace Fruberry {
             FillReservoir(startingSize);
         }
 
-        public Pool<T> FillReservoir(int size) {
+        public virtual Pool<T> FillReservoir(int size) {
             var startingCount = ActiveItems.Count + Reservoir.Count;
 
             for (var i = 0; i < size && startingCount + i < PoolSize; i++) {
@@ -55,7 +55,7 @@ namespace Fruberry {
             return this;
         }
 
-        public T SurfaceItem() {
+        public virtual T SurfaceItem() {
             if (ActiveItems.Count == PoolSize) return default;
 
             if (Reservoir.None()) FillReservoir(1);
@@ -67,7 +67,7 @@ namespace Fruberry {
             return cachedObj;
         }
 
-        public void Drown() {
+        public virtual void Drown() {
             while (ActiveItems.Count > 0) {
                 SinkItem(ActiveItems[0]);
             }

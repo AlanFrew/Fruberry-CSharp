@@ -13,4 +13,30 @@ namespace Fruberry.Tests {
             return;
         }
     }
+
+    public static class TestingUtil {
+        public static string GenerateRandomString(int length) {
+            var random = new Random((int)DateTime.Now.Ticks);
+
+            var result = new char[length];
+
+            for (var i = 0; i < result.Length; i++) {
+                result[i] = (char)random.Next(33, 127);
+            }
+
+            return new string(result);
+        }
+
+        public static string GenerateRandomLetters(int length) {
+            var random = new Random((int)DateTime.Now.Ticks);
+
+            var result = new char[length];
+
+            for (var i = 0; i < result.Length; i++) {
+                result[i] = (char)random.Next(97, 123);
+            }
+
+            return new string(result);
+        }
+    }
 }
