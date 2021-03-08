@@ -6,27 +6,32 @@ namespace Fruberry {
     public class Pool<T> : IStructure<T>{
         private int PoolSize;
         private Queue<T> Reservoir;
-        private RedBlackTree<T> ActiveItems;
+        private List<T> ActiveItems;
         private Func<T> Instantiator;
 
-        int ICollection<T>.Count => throw new NotImplementedException();
+        public int Length { get; protected set; }
 
-        public bool IsReadOnly => throw new NotImplementedException();
+        public int Count => Length;
 
-        int ICollection.Count => throw new NotImplementedException();
+        int IStructure<T>.Count() { return Length; }
 
-        public bool IsSynchronized => throw new NotImplementedException();
+        int IStructure<T>.Length {
+            get => Length;
+            set => Length = value;
+        }
 
-        public object SyncRoot => throw new NotImplementedException();
+        public bool IsReadOnly => false;
+
+        public bool IsSynchronized => false;
+
+        public object SyncRoot => null;
 
         public IList<Prefer> Constraints => new[] { Prefer.AllowDupes, Prefer.NoCompare };
-
-        int IStructure<T>.Length { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         public Pool(int poolSize, Func<T> instantiator, int startingSize = 0) {
             PoolSize = poolSize;
             Reservoir = new Queue<T>(poolSize);
-            ActiveItems = new RedBlackTree<T>();
+            ActiveItems = new List<T>();
             Instantiator = instantiator;
 
             FillReservoir(startingSize);
@@ -73,14 +78,12 @@ namespace Fruberry {
         }
 
         public IStructure<T> Add(T item) {
-            throw new NotImplementedException();
+            if (Reservoir.Count < PoolSize) Reservoir.Enqueue(item);
+
+            return this;
         }
 
         public bool Remove(T item) {
-            throw new NotImplementedException();
-        }
-
-        public int Count() {
             throw new NotImplementedException();
         }
 
@@ -101,7 +104,7 @@ namespace Fruberry {
         }
 
         public IStructure<T> Enqueue(T item) {
-            throw new NotImplementedException();
+            return Add(item);
         }
 
         public T Dequeue() {
@@ -109,7 +112,7 @@ namespace Fruberry {
         }
 
         void ICollection<T>.Add(T item) {
-            throw new NotImplementedException();
+            Add(item);
         }
 
         void ICollection<T>.Clear() {
