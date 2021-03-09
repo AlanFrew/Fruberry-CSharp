@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace Fruberry.Tests {
     public class DictionarySpeedTests {
-        private int count = 50000;
+        private int count = 2;
         [Test]
         public void DictionaryVsListSpeed() {
             var dictionary = new Dictionary<Version, Version>();

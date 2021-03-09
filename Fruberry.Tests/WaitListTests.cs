@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace Fruberry.Tests {
     public class WaitListTests {
         [Test]
-        public void RandomOps_RemainsConsistent() {
+        public void Validate_Random() {
             var numOperations = 1000;
 
             var random = new Random((int)DateTime.Now.Ticks);
