@@ -13,9 +13,13 @@ namespace Fruberry {
             public Node<T> Parent;
             public T Value;
 
-            public Node() { Color = BLACK; }
-            public Node(T data) { Value = data; }
-            public Node(Node<T> parent) { Parent = parent; Color = BLACK; }
+            public Node(T value = default, bool color = true, Node<T> parent = null, Node<T> left = null, Node<T> right = null) {
+                Value = value;
+                Color = color;
+                Parent = parent;
+                Left = left;
+                Right = right;
+            }
 
             public override string ToString() {
                 return $"{(Value == null ? "Nil" : Value.ToString())} ({(Color ? "Black" : "Red")})";
@@ -24,11 +28,14 @@ namespace Fruberry {
 
         protected static bool BLACK = true;
         protected static bool RED = false;
-        protected Node<T> Nil = new Node<T>();
+        protected Node<T> Nil = new Node<T>(default);
+        protected Node<T> Root;
 
-        public int Length { get; protected set; }
+        public IList<Prefer> Constraints => new[] { Prefer.AllowDupes };
 
-        public int Count => Length;
+        public virtual int Length { get; protected set; }
+
+        public virtual int Count => Length;
 
         int IStructure<T>.Count() { return Length; }
 
@@ -37,9 +44,17 @@ namespace Fruberry {
             set => Length = value;
         }
 
-        private Node<T> root;
+        public virtual bool IsReadOnly => false;
 
-        private int _compare(T left, T right) {
+        public virtual bool IsSynchronized => false;
+
+        public virtual object SyncRoot => null;
+
+        public RedBlackTree() {
+            Root = Nil.Left = Nil.Right = Nil.Parent = Nil;
+        }
+
+        virtual protected int Compare(T left, T right) {
             if (IStructure<T>.Compare != null) return IStructure<T>.Compare(left, right);
 
             if (typeof(T).GetInterface(nameof(IComparable<T>)) != null) return ((IComparable<T>)left).CompareTo(right);
@@ -47,87 +62,48 @@ namespace Fruberry {
             return 0;
         }
 
-        public bool IsReadOnly => false;
-
-        public bool IsSynchronized => false;
-
-        public object SyncRoot => null;
-
-        public IList<Prefer> Constraints => new[] { Prefer.AllowDupes };
-
-        public RedBlackTree() {
-            Nil.Left = Nil.Right = Nil;
-
-            root = Nil;
-        }
-
-        public bool Contains(T key) {
+        public virtual bool Contains(T key) {
             var result = Find(key) != null;
-
-            //if (result == false) Debugger.Break();
 
             return result;
         }
 
-        private Node<T> Find(T key) {
+        protected virtual Node<T> Find(T key) {
             var isFound = false;
-            var temp = root;
+            var temp = Root;
             while (!isFound) {
-                if (temp == Nil) {
-                    break;
-                }
-                if (_compare(key, temp.Value) < 0) {
-                    temp = temp.Left;
-                }
-                else if (_compare(key, temp.Value) > 0) {
-                    temp = temp.Right;
-                }
-                else if (_compare(key, temp.Value) == 0) {
-                    isFound = true;
-                }
+                if (temp == Nil) break;
+
+                if (Compare(key, temp.Value) == 0) return temp;
+
+                if (Compare(key, temp.Value) < 0) temp = temp.Left;
+                else temp = temp.Right;        
             }
 
             return isFound ? temp : null;
         }
 
-        public IStructure<T> Add(T item) {
-            var Y = Nil;
-            var newItem = new Node<T>(item) { Left = Nil, Right = Nil };
-            var X = root;
-            //handle the root specially to avoid a lot of null checking later
-            //if (root == null) {
-            //    root = newItem;
+        public virtual RedBlackTree<T> Add(T item) {
+            var newItem = new Node<T>(item) { Left = Nil, Right = Nil, Parent = Nil };
+            var newParent = Nil;        
+            var temp = Root;
 
-            //    root.Color = BLACK;
+            while (temp != Nil) {
+                newParent = temp;
 
-            //    Length++;
-
-            //    return this;
-            //}
-
-            //Node<T> Y = null;
-            //var X = root;
-
-            while (X != Nil) {
-                Y = X;
-                if (_compare(newItem.Value, X.Value) < 0) {
-                    X = X.Left;
-                }
-                else {
-                    X = X.Right;
-                }
+                temp = Compare(newItem.Value, temp.Value) < 0 ? temp.Left : temp.Right;
             }
 
-            newItem.Parent = Y;
+            newItem.Parent = newParent;
 
-            if (Y == Nil) {
-                root = newItem;
+            if (newParent == Nil) {
+                Root = newItem;
             }
-            else if (_compare(newItem.Value, Y.Value) < 0) {
-                Y.Left = newItem;
+            else if (Compare(newItem.Value, newParent.Value) < 0) {
+                newParent.Left = newItem;
             }
             else {
-                Y.Right = newItem;
+                newParent.Right = newItem;
             }
 
             newItem.Color = RED;
@@ -139,227 +115,154 @@ namespace Fruberry {
             return this;
         }
 
-        //public bool Remove(T key) {
-        //    var z = Find(key);
-        //    if (z == null) {
-        //        return false;
-        //    }
-
-        //    var y = z;
-        //    var yOriginalColor = y.Color;
-
-        //    Node<T> x;
-
-        //    if (z.Left == null) {
-        //        x = z.Right;
-        //        rbTransplant(z, z.Left);
-        //    }
-        //    else if (z.Right == null) {
-        //        x = z.Left;
-        //    }
-        //    else {
-        //        y = Minimum(z.Right);
-        //        yOriginalColor = y.Color;
-        //        x = y.Right;
-        //        if (y.Parent == z) {
-        //            x.Parent = y;
-        //        }
-        //        else {
-        //            rbTransplant(y, y.Right);
-        //            y.Right = z.Right;
-        //            y.Right.Parent = y;
-        //        }
-
-        //        rbTransplant(z, y);
-        //        y.Left = z.Left;
-        //        y.Left.Parent = y;
-        //        y.Color = z.Color;
-        //    }
-
-        //    if (yOriginalColor == BLACK) {
-        //        RebalanceRemove(x);
-        //    }
-
-        //    Length--;
-
-        //    return true;
-        //}
-
-        public bool Remove(T key) {
+        public virtual bool Remove(T key) {
             var target = Find(key);
+
             if (target == null) {
                 return false;
             }
 
-            Node<T> x;
-            Node<T> y;
+            var temp1 = target.Left == Nil || target.Right == Nil ? target : Next(target);
 
-            if (target.Left == Nil || target.Right == Nil)
-                y = target;
-            else {
-                //y = target.Right;
-                //while (y.Left != Nil)
-                //    y = y.Left;
-                y = Next(target);
+            var tempChild = temp1.Left != Nil ? temp1.Left : temp1.Right;
+
+            tempChild.Parent = temp1.Parent;
+
+            if (temp1.Parent != Nil) {
+                if (temp1 == temp1.Parent.Left) {
+                    temp1.Parent.Left = tempChild;
+                }
+                else temp1.Parent.Right = tempChild;
+            }
+            else Root = tempChild;
+
+            if (temp1 != target) {
+                target.Value = temp1.Value;
             }
 
-            if (y.Left != Nil)
-                x = y.Left;
-            else
-                x = y.Right;
-
-            x.Parent = y.Parent;
-            if (y.Parent != Nil)
-                if (y == y.Parent.Left)
-                    y.Parent.Left = x;
-                else
-                    y.Parent.Right = x;
-            else
-                root = x;
-
-            if (y != target) {
-                target.Value = y.Value;
+            if (temp1.Color == BLACK) {
+                RebalanceRemove(tempChild);
             }
-
-            if (y.Color == BLACK)
-                RebalanceRemove(x);
-
-            //lastNodeFound = sentinelNode;
-
-            //var node1 = (target.Left == Nil || target.Right == Nil) ? target : Next(target);
-
-            //Node<T> fake = null;
-
-            //var node2 = node1.Left != Nil ? node1.Left : node1.Right;
-
-            //node2.Parent = node1.Parent;
-
-            //if (node1.Parent == Nil) {
-            //    root = node2;
-            //}
-            //else if (node1 == node1.Parent.Left) {
-            //    node1.Parent.Left = node2;
-            //}
-            //else {
-            //    node1.Parent.Right = node2;
-            //}
-
-            //if (node1 != target) {
-            //    target.Value = node1.Value;
-            //}
-
-            //if (node1.Color == BLACK) {
-            //    if (node2.Color != BLACK) Debugger.Break();
-
-            //    RebalanceRemove(node2, fake);
-            //}
 
             Length--;
 
             return true;
         }
 
-        public T this[int i] {
+        public virtual T this[int i] { //TODO: expand
             get {
-                if (i == 0) return root.Value;
+                if (i == 0) return Root.Value;
 
                 return default;
             }
         }
 
-        public void InOrderTraversal(Node<T> current, Action<Node<T>> action) {
-            if (current != null) {
-                InOrderTraversal(current.Left, action);
+        public virtual void TraverseInOrder(Node<T> current, Action<Node<T>> action) {
+            if (current == null) return;
 
-                action(current);
+            TraverseInOrder(current.Left, action);
 
-                InOrderTraversal(current.Right, action);
-            }
+            action(current);
+
+            TraverseInOrder(current.Right, action);
         }
 
-        public Node<T> Minimum(Node<T> node) {
-            while (node.Left != Nil) {
-                node = node.Left;
+        public virtual T Min() {
+            var result = Root;
+            while (result.Left != Nil) {
+                result = result.Left;
             }
 
-            return node;
+            return result.Value;
+        }
+
+        public virtual T Max() {
+            var result = Root;
+            while (result.Right != Nil) {
+                result = result.Right;
+            }
+
+            return result.Value;
         }
 
         /// <summary>
         /// Display Tree
         /// </summary>
-        public void DisplayTree() {
-            if (root == null) {
-                Console.WriteLine("Nothing in the tree!");
+        public virtual void Print() {
+            Console.WriteLine('{');
 
-                return;
-            }
+            TraverseInOrder(Root, (node) => Console.WriteLine(node));
 
-            if (root != null) {
-                InOrderTraversal(root, (node) => Console.WriteLine(node));
-            }
-        }
-
-        private void LeftRotate(Node<T> node1) {
-            var node2 = node1.Right;
-
-            node1.Right = node2.Left; //turn Y's left subtree into X's right subtree
-
-            if (node2.Left != Nil) node2.Left.Parent = node1;
-
-            node2.Parent = node1.Parent;
-
-            if (node1.Parent == Nil) {
-                root = node2;
-            }
-            else if (node1 == node1.Parent.Left) {
-                node1.Parent.Left = node2;
-            }
-            else {
-                node1.Parent.Right = node2;
-            }
-
-            node2.Left = node1;
-
-            node1.Parent = node2;
+            Console.WriteLine('}');
         }
 
         /// <summary>
-        /// Rotate Right
+        /// Makes the given node's subtree a child of its right child
         /// </summary>
-        private void RightRotate(Node<T> node1) {
-            var node2 = node1.Left;
+        protected virtual void RotateLeft(Node<T> node) {
+            var newParent = node.Right;
 
-            node1.Left = node2.Right; //turn Y's left subtree into X's right subtree
+            node.Right = newParent.Left;
 
-            if (node2.Right != Nil) node2.Right.Parent = node1;
-
-            node2.Parent = node1.Parent;
-
-            if (node1.Parent == Nil) {
-                root = node2;
+            if (newParent.Left != Nil) {
+                newParent.Left.Parent = node;
             }
-            else if (node1 == node1.Parent.Right) {
-                node1.Parent.Right = node2;
+
+            newParent.Parent = node.Parent;
+
+            if (node.Parent == Nil) {
+                Root = newParent;
+            }
+            else if (node == node.Parent.Left) {
+                node.Parent.Left = newParent;
             }
             else {
-                node1.Parent.Left = node2;
+                node.Parent.Right = newParent;
             }
 
-            node2.Right = node1;
+            newParent.Left = node;
 
-            node1.Parent = node2;
+            node.Parent = newParent;
         }
 
-        private void RebalanceAdd(Node<T> redNode) {
+        /// <summary>
+        /// Makes the given node's subtree a child of its right child
+        /// </summary>
+        protected virtual void RotateRight(Node<T> node) {
+            var newParent = node.Left;
+
+            node.Left = newParent.Right;
+
+            if (newParent.Right != Nil) {
+                newParent.Right.Parent = node;
+            }
+
+            newParent.Parent = node.Parent;
+
+            if (node.Parent == Nil) {
+                Root = newParent;
+            }
+            else if (node == node.Parent.Right) {
+                node.Parent.Right = newParent;
+            }
+            else {
+                node.Parent.Left = newParent;
+            }
+
+            newParent.Right = node;
+
+            node.Parent = newParent;
+        }
+
+        protected virtual void RebalanceAdd(Node<T> redNode) {
             while (redNode.Parent.Color == RED) {
                 if (redNode.Parent == redNode.Parent.Parent.Left) {
-                    var temp = redNode.Parent.Parent.Right;
+                    var uncle = redNode.Parent.Parent.Right;
 
-                    if (temp != null && temp.Color == RED) {
+                    if (uncle != null && uncle.Color == RED) {
                         redNode.Parent.Color = BLACK;
 
-                        temp.Color = BLACK;
+                        uncle.Color = BLACK;
 
                         redNode.Parent.Parent.Color = RED;
 
@@ -369,23 +272,23 @@ namespace Fruberry {
                         if (redNode == redNode.Parent.Right) {
                             redNode = redNode.Parent;
 
-                            LeftRotate(redNode);
+                            RotateLeft(redNode);
                         }
 
                         redNode.Parent.Color = BLACK;
 
                         redNode.Parent.Parent.Color = RED;
 
-                        RightRotate(redNode.Parent.Parent);
+                        RotateRight(redNode.Parent.Parent);
                     }
                 }
                 else {
-                    var temp = redNode.Parent.Parent.Left;
+                    var aunt = redNode.Parent.Parent.Left;
 
-                    if (temp != null && temp.Color == RED) {
+                    if (aunt != null && aunt.Color == RED) {
                         redNode.Parent.Color = BLACK;
 
-                        temp.Color = BLACK;
+                        aunt.Color = BLACK;
 
                         redNode.Parent.Parent.Color = RED;
 
@@ -395,218 +298,152 @@ namespace Fruberry {
                         if (redNode == redNode.Parent.Left) {
                             redNode = redNode.Parent;
 
-                            RightRotate(redNode);
+                            RotateRight(redNode);
                         }
 
                         redNode.Parent.Color = BLACK;
 
                         redNode.Parent.Parent.Color = RED;
 
-                        LeftRotate(redNode.Parent.Parent);
+                        RotateLeft(redNode.Parent.Parent);
                     }
                 }
             }
 
-            root.Color = BLACK;
+            Root.Color = BLACK;
         }
 
-        //private void RebalanceRemove(Node<T> x) {
-        //    Node<T> s;
-        //    while (x != root && x.Color == BLACK) {
-        //        if (x == x.Parent.Left) {
-        //            s = x.Parent.Right;
-        //            if (s.Color == RED) {
-        //                // case 3.1
-        //                s.Color = BLACK;
-        //                x.Parent.Color = RED;
-        //                LeftRotate(x.Parent);
-        //                s = x.Parent.Right;
-        //            }
+        protected virtual void RebalanceRemove(Node<T> fixer) {
+            while (fixer != Root && fixer.Color == BLACK) { //Red nodes never require further work
+                if (fixer == fixer.Parent.Left) {
+                    var brother = fixer.Parent.Right;
 
-        //            if (s.Left.Color == BLACK && s.Right.Color == BLACK) {
-        //                // case 3.2
-        //                s.Color = RED;
-        //                x = x.Parent;
-        //            }
-        //            else {
-        //                if (s.Right.Color == BLACK) {
-        //                    // case 3.3
-        //                    s.Left.Color = BLACK;
-        //                    s.Color = RED;
-        //                    RightRotate(s);
-        //                    s = x.Parent.Right;
-        //                }
+                    if (brother.Color == RED) {
+                        brother.Color = BLACK;
 
-        //                // case 3.4
-        //                s.Color = x.Parent.Color;
-        //                x.Parent.Color = BLACK;
-        //                s.Right.Color = BLACK;
-        //               LeftRotate(x.Parent);
-        //                x = root;
-        //            }
-        //        }
-        //        else {
-        //            s = x.Parent.Left;
-        //            if (s.Color == RED) {
-        //                // case 3.1
-        //                s.Color = BLACK;
-        //                x.Parent.Color = RED;
-        //                RightRotate(x.Parent);
-        //                s = x.Parent.Left;
-        //            }
+                        fixer.Parent.Color = RED;
 
-        //            if (s.Right.Color == BLACK && s.Right.Color == BLACK) {
-        //                // case 3.2
-        //                s.Color = RED;
-        //                x = x.Parent;
-        //            }
-        //            else {
-        //                if (s.Left.Color == BLACK) {
-        //                    // case 3.3
-        //                    s.Right.Color = BLACK;
-        //                    s.Color = RED;
-        //                    LeftRotate(s);
-        //                    s = x.Parent.Left;
-        //                }
+                        RotateLeft(fixer.Parent);
 
-        //                // case 3.4
-        //                s.Color = x.Parent.Color;
-        //                x.Parent.Color = BLACK;
-        //                s.Left.Color = BLACK;
-        //                RightRotate(x.Parent);
-        //                x = root;
-        //            }
-        //        }
-        //    }
-        //    x.Color = BLACK;
-        //}
-
-        protected void RebalanceRemove(Node<T> x) {
-            while (x != root && x.Color == BLACK) {
-                if (x == x.Parent.Left) {
-                    var sibling = x.Parent.Right;
-                    if (sibling.Color == RED) {
-                        sibling.Color = BLACK;
-
-                        x.Parent.Color = RED;
-
-                        LeftRotate(x.Parent);
-
-                        sibling = x.Parent.Right;
+                        brother = fixer.Parent.Right;
                     }
-                    if (sibling.Left.Color == BLACK && sibling.Right.Color == BLACK) {
-                        sibling.Color = RED;
+                    if (brother.Left.Color == BLACK && brother.Right.Color == BLACK) {
+                        brother.Color = RED;
 
-                        x = x.Parent;
+                        fixer = fixer.Parent;
                     }
                     else {
-                        if (sibling.Right.Color == BLACK) {
-                            sibling.Left.Color = BLACK;
+                        if (brother.Right.Color == BLACK) {
+                            brother.Left.Color = BLACK;
 
-                            sibling.Color = RED;
+                            brother.Color = RED;
 
-                            RightRotate(sibling);
+                            RotateRight(brother);
 
-                            sibling = x.Parent.Right;
+                            brother = fixer.Parent.Right;
                         }
 
-                        sibling.Color = x.Parent.Color;
+                        brother.Color = fixer.Parent.Color;
 
-                        x.Parent.Color = BLACK;
+                        fixer.Parent.Color = BLACK;
 
-                        sibling.Right.Color = BLACK;
+                        brother.Right.Color = BLACK;
 
-                        LeftRotate(x.Parent);
+                        RotateLeft(fixer.Parent);
 
-                        x = root;
+                        fixer = Root;
                     }
                 }
                 else // mirror code from above with "right" and "left" exchanged
                 {
-                    var y = x.Parent.Left;
-                    if (y?.Color == RED) {
-                        y.Color = BLACK;
+                    var sister = fixer.Parent.Left;
+                    if (sister?.Color == RED) {
+                        sister.Color = BLACK;
 
-                        x.Parent.Color = RED;
+                        fixer.Parent.Color = RED;
 
-                        RightRotate(x.Parent);
+                        RotateRight(fixer.Parent);
 
-                        y = x.Parent.Left;
+                        sister = fixer.Parent.Left;
                     }
-                    if (y.Right.Color == BLACK && y.Left.Color == BLACK) {
-                        y.Color = RED;
+                    if (sister.Right.Color == BLACK && sister.Left.Color == BLACK) {
+                        sister.Color = RED;
 
-                        x = x.Parent;
+                        fixer = fixer.Parent;
                     }
                     else {
-                        if (y.Left.Color == BLACK) {
-                            y.Right.Color = BLACK;
+                        if (sister.Left.Color == BLACK) {
+                            sister.Right.Color = BLACK;
 
-                            y.Color = RED;
+                            sister.Color = RED;
 
-                            LeftRotate(y);
+                            RotateLeft(sister);
 
-                            y = x.Parent.Left;
+                            sister = fixer.Parent.Left;
                         }
 
-                        y.Color = x.Parent.Color;
+                        sister.Color = fixer.Parent.Color;
 
-                        x.Parent.Color = BLACK;
+                        fixer.Parent.Color = BLACK;
 
-                        y.Left.Color = BLACK;
+                        sister.Left.Color = BLACK;
 
-                        RightRotate(x.Parent);
+                        RotateRight(fixer.Parent);
 
-                        x = root;
+                        fixer = Root;
                     }
                 }
             }
 
-            x.Color = BLACK;
-
-            //if (fake != null) {
-            //    if (fake.Parent.Left == fake) fake.Parent.Left = null;
-            //    else fake.Parent.Right = null;
-            //}
+            fixer.Color = BLACK;
         }
 
-        protected bool IsConsistent() {
-            if (root == null) return true;
-
-            if (root.Color == RED) return false;
-
-            static void checkChildren(Node<T> current) {
-                if (current.Color == RED
-                && (current.Left != null && current.Left.Color != BLACK
-                    || current.Right != null && current.Right.Color != BLACK)) {
-                    Debugger.Break();
-                }
+        protected virtual Node<T> Next(Node<T> current) {
+            if (current.Right != Nil) {
+                return Min(current.Right);
             }
 
-            InOrderTraversal(root, checkChildren);
+            var result = current.Parent;
+            while (result != Nil && current == result.Right) {
+                current = result;
 
-            return true;
+                result = result.Parent;
+            }
+
+            return result;
         }
 
-        protected bool Validate() {
-            if (root == Nil) return Length == 0;
+        protected virtual Node<T> Min(Node<T> node) {
+            while (node.Left != Nil) {
+                node = node.Left;
+            }
 
-            if (root.Parent != Nil) return false;
-
-            if (root.Color == RED) return false;
-
-            return Validate(root).isValid;
+            return node;
         }
 
-        protected (bool isValid, int blackCount) Validate(Node<T> subroot) {
-            if (subroot == Nil) return (true, 1);
+        protected virtual bool Validate() {
+            if (Root == Nil) return Length == 0;
+
+            if (Root.Parent != Nil) return false;
+
+            if (Root.Color == RED) return false;
+
+            return Validate(Root).isValid;
+        }
+
+        protected virtual (bool isValid, int blackCount) Validate(Node<T> current) {
+            if (current == Nil) return (true, 1);
 
             int blackCount;
-            if (subroot.Color == RED) {
+            if (current.Color == RED) {
                 blackCount = 0;
 
-                if (subroot.Left != null && subroot.Left.Color == RED
-                || subroot.Right != null && subroot.Right.Color == RED) {
+                if (current.Left != null && current.Left.Color == RED
+                || current.Right != null && current.Right.Color == RED) {
+                    return (false, -1);
+                }
+
+                if (current.Left.Color != BLACK || current.Right.Color != BLACK) {
                     return (false, -1);
                 }
             }
@@ -614,27 +451,12 @@ namespace Fruberry {
                 blackCount = 1;
             }
 
-            (var leftValid, var leftCount) = Validate(subroot.Left);
-            (var rightValid, var rightCount) = Validate(subroot.Right);
+            (var leftValid, var leftCount) = Validate(current.Left);
+            (var rightValid, var rightCount) = Validate(current.Right);
 
             if (!leftValid || !rightValid || leftCount != rightCount) Debugger.Break();
 
             return (leftValid && rightValid && leftCount == rightCount, leftCount + blackCount);
-        }
-
-        protected Node<T> Next(Node<T> current) {
-            if (current.Right != Nil) {
-                return Minimum(current.Right);
-            }
-
-            var temp = current.Parent;
-            while (temp != Nil && current == temp.Right) {
-                current = temp;
-
-                temp = temp.Parent;
-            }
-
-            return temp;
         }
 
         IStructure<T> IStructure<T>.Add(T item) {
@@ -643,31 +465,29 @@ namespace Fruberry {
             return this;
         }
 
-        public IStructure<T> Clear() {
-            root = null;
+        public virtual RedBlackTree<T> Clear() {
+            Root = Nil;
 
             return this;
         }
 
-        public T Pop() {
-            if (root == null) return default;
+        public virtual T Peek() {
+            return Root.Value; //Same element as the one returned by Pop()
+        }
 
-            var result = root.Value;
+        public virtual T Pop() {
+            var result = Root.Value;
 
-            Remove(root.Value); //TODO: test to find out what node is fastest to remove
+            Remove(Root.Value); //TODO: test to find out what node is fastest to remove
 
             return result;
-        }
+        }        
 
-        public T Peek() {
-            return root.Value; //Same element as the one returned by Pop()
-        }
-
-        public IStructure<T> Enqueue(T item) {
+        public virtual RedBlackTree<T> Enqueue(T item) {
             return Add(item);
         }
 
-        public T Dequeue() {
+        public virtual T Dequeue() {
             return Pop();
         }
 
@@ -675,146 +495,133 @@ namespace Fruberry {
             Clear();
         }
 
-        public void CopyTo(T[] array, int arrayIndex) {
-            throw new NotImplementedException();
+        public virtual void CopyTo(T[] array, int arrayIndex) {
+            var increment = 0;
+            foreach (var item in this) {
+                array[arrayIndex + increment] = item;
+            }
         }
 
-        public IEnumerator<T> GetEnumerator() {
-            throw new NotImplementedException();
+        public virtual IEnumerator<T> GetEnumerator() {
+            return new RedBlackEnumerator<T>(this);
         }
 
-        public void CopyTo(Array array, int index) {
-            throw new NotImplementedException();
+        public virtual void CopyTo(Array array, int index) {
+            var indexable = (IList)array;
+            var increment = 0;
+            foreach (var item in this) {
+                indexable[index + increment] = item;
+            }
         }
 
         IEnumerator IEnumerable.GetEnumerator() {
-            throw new NotImplementedException();
+            return GetEnumerator();
         }
 
         void ICollection<T>.Add(T item) {
-            throw new NotImplementedException();
+            Add(item);
         }
 
-        public class RedBlackEnumerator<T> {
-            private Stack<RedBlackTree<T>.Node<T>> stack;
-            private bool ascending;
-            public string Color;             // testing only, don't use in live system
-            public IComparable<T> parentKey;     // testing only, don't use in live system
-            public RedBlackTree<T> tree;
-            ///<summary>
-            ///Key
-            ///</summary>
-            public IComparable<T> Key { get; set; }
+        IStructure<T> IStructure<T>.Clear() {
+            return Clear();
+        }
+
+        IStructure<T> IStructure<T>.Enqueue(T item) {
+            return Add(item);
+        }
+
+        public class RedBlackEnumerator<T> : IEnumerator<T> {
+            protected Stack<RedBlackTree<T>.Node<T>> Stack;
+            protected bool IsAscending;
+            protected string Color;             // testing only, don't use in live system
+            protected IComparable<T> ParentKey;     // testing only, don't use in live system
+            protected RedBlackTree<T> Structure;
+
+            public virtual T Current { get; set; }
+
+            object IEnumerator.Current => Current;
 
             ///<summary>
-            ///Data
+            /// Create a new enumerator
             ///</summary>
-            public object Value { get; set; }
+            public RedBlackEnumerator(RedBlackTree<T> structure, bool isAscending = true) {
+                Structure = structure;
+                IsAscending = isAscending;
 
-            public RedBlackEnumerator() {
+                Reset();
             }
 
             ///<summary>
-            /// Determine order, walk the tree and push the nodes onto the stack
+            /// Advances the enumerator to the next element of the collection.
             ///</summary>
-            public RedBlackEnumerator(RedBlackTree<T> tree, bool keys, bool ascending) {
-                this.tree = tree;
-                var node = tree.root;
+            ///<returns>true if the enumerator was successfully advanced to the next element, or false if the enumerator has passed the end of the collection</returns>
+            public virtual bool MoveNext() {
+                if (Stack.Count == 0) return false;
 
-                stack = new Stack<RedBlackTree<T>.Node<T>>();
-                this.ascending = ascending;
+                var node = Stack.Peek();
 
-                // use depth-first traversal to push nodes into stack
-                // the lowest node will be at the top of the stack
-                if (ascending) {   // find the lowest node
-                    while (node != tree.Nil) {
-                        stack.Push(node);
-                        node = node.Left;
-                    }
-                }
-                else {
-                    // the highest node will be at top of stack
-                    while (node != tree.Nil) {
-                        stack.Push(node);
-                        node = node.Right;
-                    }
-                }
+                if (IsAscending) {
+                    if (node.Right == Structure.Nil) {
 
-            }
+                        var tn = Stack.Pop();
 
-            ///<summary>
-            /// NextElement
-            ///</summary>
-            public T NextElement() {
-                if (stack.Count == 0)
-                    throw (new Exception("Element not found"));
-
-                // the top of stack will always have the next item
-                // get top of stack but don't remove it as the next nodes in sequence
-                // may be pushed onto the top
-                // the stack will be popped after all the nodes have been returned
-                var node = stack.Peek(); //next node in sequence
-
-                if (ascending) {
-                    if (node.Right == tree.Nil) {
-                        // yes, top node is lowest node in subtree - pop node off stack 
-                        var tn = stack.Pop();
-                        // peek at right node's parent 
-                        // get rid of it if it has already been used
-                        while (stack.Any() && (stack.Peek()).Right == tn)
-                            tn = stack.Pop();
+                        while (Stack.Any() && (Stack.Peek()).Right == tn)
+                            tn = Stack.Pop();
                     }
                     else {
-                        // find the next items in the sequence
-                        // traverse to left; find lowest and push onto stack
                         var tn = node.Right;
-                        while (tn != tree.Nil) {
-                            stack.Push(tn);
+                        while (tn != Structure.Nil) {
+                            Stack.Push(tn);
                             tn = tn.Left;
                         }
                     }
                 }
-                else            // descending, same comments as above apply
-                {
-                    if (node.Left == tree.Nil) {
-                        // walk the tree
-                        var tn = stack.Pop();
-                        while (stack.Any() && (stack.Peek()).Left == tn)
-                            tn = stack.Pop();
+                else {
+                    if (node.Left == Structure.Nil) {
+                        var tn = Stack.Pop();
+                        while (Stack.Any() && (Stack.Peek()).Left == tn)
+                            tn = Stack.Pop();
                     }
                     else {
-                        // determine next node in sequence
-                        // traverse to left subtree and find greatest node - push onto stack
                         var tn = node.Left;
-                        while (tn != tree.Nil) {
-                            stack.Push(tn);
+                        while (tn != Structure.Nil) {
+                            Stack.Push(tn);
                             tn = tn.Right;
                         }
                     }
                 }
 
-                Value = node.Value;
-
-                // ******** testing only ********
-                if (node.Color == false)                     // testing only
+                // testing only
+                if (node.Color == false) 
                     Color = "Red";
                 else
                     Color = "Black";
-                // ******** testing only ********
 
-                return node.Value;
+                Current = node.Value;
+
+                return true;
             }
-            ///<summary>
-            /// MoveNext
-            /// For .NET compatibility
-            ///</summary>
-            public bool MoveNext() {
-                if (stack.Any()) {
-                    NextElement();
-                    return true;
-                }
 
-                return false;
+            public virtual void Reset() {
+                var node = Structure.Root;
+                Stack = new Stack<RedBlackTree<T>.Node<T>>();
+
+                if (IsAscending) {
+                    while (node != Structure.Nil) {
+                        Stack.Push(node);
+                        node = node.Left;
+                    }
+                }
+                else {
+                    while (node != Structure.Nil) {
+                        Stack.Push(node);
+                        node = node.Right;
+                    }
+                }
+            }
+
+            public virtual void Dispose() {
+                //should be a no-op; stack and tree reference will be garbage collected
             }
         }
     }

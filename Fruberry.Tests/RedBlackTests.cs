@@ -1,6 +1,7 @@
 ﻿using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Collections;
 using System.Text;
 
 namespace Fruberry.Tests {
@@ -8,8 +9,64 @@ namespace Fruberry.Tests {
         public new bool Validate() {
             return base.Validate();
         }
+
+        public new Node<T> Nil => base.Nil;
     }
+
     public class RedBlackTests{
+        [Test]
+        public void Enumerate() {
+            var tree = new RedBlackTree<string> { "foo", "bar", "baz" };
+
+            var joined = new StringBuilder();
+
+            foreach (var item in tree) {
+                joined.Append(item);
+            }
+
+            Assert.AreEqual("barbazfoo", joined.ToString());
+
+            joined = new StringBuilder();
+
+            foreach (var item in (IEnumerable)tree) {
+                joined.Append(item);
+            }
+
+            Assert.AreEqual("barbazfoo", joined.ToString());
+
+            joined = new StringBuilder();
+
+            foreach (var item in (IEnumerable<string>)tree) {
+                joined.Append(item);
+            }
+
+            Assert.AreEqual("barbazfoo", joined.ToString());
+
+            joined = new StringBuilder();
+
+            foreach (var item in (ICollection)tree) {
+                joined.Append(item);
+            }
+
+            Assert.AreEqual("barbazfoo", joined.ToString());
+
+            joined = new StringBuilder();
+
+            foreach (var item in (ICollection<string>)tree) {
+                joined.Append(item);
+            }
+
+            Assert.AreEqual("barbazfoo", joined.ToString());
+
+            joined = new StringBuilder();
+
+            foreach (var item in (IStructure<string>)tree) {
+                joined.Append(item);
+            }
+
+            Assert.AreEqual("barbazfoo", joined.ToString());
+        }
+
         [Test]
         public void Validate_Random() {
             var numOperations = 1000;
@@ -283,18 +340,19 @@ namespace Fruberry.Tests {
             var backup = new List<string>();
 
             Add(redBlackTree, backup, "a");
-            RemoveHelper(redBlackTree, backup);
+            //RemoveHelper(redBlackTree, backup);
             Add(redBlackTree, backup, "b");
-            Add(redBlackTree, backup, "c");
+            Add(redBlackTree, backup, "a");
             Add(redBlackTree, backup, "d");
-            Add(redBlackTree, backup, "e");
+            Add(redBlackTree, backup, "d");
+            DupeRemoveHelper(redBlackTree, backup);
             Add(redBlackTree, backup, "f");
             Add(redBlackTree, backup, "g");
-            RemoveHelper(redBlackTree, backup);
+            DupeRemoveHelper(redBlackTree, backup);
             Add(redBlackTree, backup, "h");
-            RemoveHelper(redBlackTree, backup);
-            RemoveHelper(redBlackTree, backup);
-            RemoveHelper(redBlackTree, backup);
+            DupeRemoveHelper(redBlackTree, backup);
+            DupeRemoveHelper(redBlackTree, backup);
+            DupeRemoveHelper(redBlackTree, backup);
             Add(redBlackTree, backup, "i");
             
             foreach (var backupItem in backup) {
@@ -307,6 +365,15 @@ namespace Fruberry.Tests {
             Assert.True(backup.Remove(item));
             Assert.True(redBlackTree.Validate());
             Assert.False(redBlackTree.Contains(item));
+            Assert.AreEqual(default(string), redBlackTree.Nil.Value);
+            return item;
+        }
+
+        private static string DupeRemoveHelper(RedBlackTester<string> redBlackTree, List<string> backup) {
+            var item = redBlackTree.Pop();
+            Assert.True(backup.Remove(item));
+            Assert.True(redBlackTree.Validate());
+            Assert.AreEqual(default(string), redBlackTree.Nil.Value);
             return item;
         }
 
