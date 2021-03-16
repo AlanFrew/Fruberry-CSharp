@@ -4,6 +4,7 @@
     using System.Collections.ObjectModel;
     using System.Collections.Generic;
     using System.Collections;
+    using System.Linq;
 
     [DebuggerDisplay("Count = {Count}")]
     [Serializable]
@@ -82,6 +83,14 @@
         bool ICollection.IsSynchronized => false;
 
         object ICollection.SyncRoot => null;
+
+        public List<T> ToList(IEnumerable<T> source) {
+            if (source is List<T>) {
+                return (List<T>)source;
+            }
+
+            return new List<T>(source.ToList()); //TODO: replace call to ToList() to avoid double copying
+        }
 
         public T this[int index] {
             get => _items[index];

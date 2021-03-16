@@ -39,10 +39,10 @@ namespace Fruberry {
             return this;
         }
 
-        public Graph<T> Add(T item, List<T> neighbors) {
+        public Graph<T> Add(T item, IList<T> neighbors) {
             if (Nodes == null) Nodes = new Dictionary2<T, List<T>>();
 
-            Nodes[item] = neighbors;
+            Nodes[item] = new List<T>(neighbors);
 
             return this;
         }

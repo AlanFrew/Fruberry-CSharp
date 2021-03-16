@@ -1,6 +1,12 @@
 ﻿using NUnit.Framework;
 
 namespace Fruberry.Tests {
+    public class GridGraph<T> : Grid<T> {
+        public GridGraph(int rows, int columns) : base(rows, columns) { }
+
+        public Graph<T> Portals = new Graph<T>();
+    }
+
     public class GridTests {
         [Test]
         public void Create() {
@@ -17,9 +23,9 @@ namespace Fruberry.Tests {
 
             var grid = new Grid<int>(3, 3);
 
-            for (var i = 0; i < grid.Cells.GetLength(0); i++) {
-                for (var j = 0; j < grid.Cells.GetLength(1); j++) {
-                    grid[i, j] = i * grid.Cells.GetLength(0) + j + 1;
+            for (var i = 0; i < grid.Dimensions.Rows; i++) {
+                for (var j = 0; j < grid.Dimensions.Columns; j++) {
+                    grid[i, j] = i * grid.Dimensions.Rows + j + 1;
                 }
             }
 
@@ -111,5 +117,36 @@ namespace Fruberry.Tests {
             Check.Contains(topleftNeighbors, topmid);
             Check.Contains(topleftNeighbors, midleft);
         }
-    }
+
+        [Test]
+        public void Subclass() {
+            var dungeon = new GridGraph<string>(3, 3) {
+                [0, 0] = "Entryway",
+                [0, 1] = "Armory",
+                [0, 2] = "Kitchen",
+                [1, 0] = "Storeroom",
+                [1, 1] = "Well",
+                [1, 2] = "Treasure Room",
+                [0, 0] = "Throne Room",
+                [0, 0] = "Great Hall",
+                [0, 0] = "Billiards"
+            };
+
+            dungeon.Portals.Add("Throne Room", new[] { "Billiards" });
+            dungeon.Portals.Add("Billiards", new[] { "Throne Room" });
+
+            foreach (var room in dungeon) {
+                if (room == "Throne Room") {
+                    Assert.True(dungeon.Portals.GetNeighbors(room).Contains("Billiards"));
+                }
+                else if (room == "Billiards") {
+                    Assert.True(dungeon.Portals.GetNeighbors(room).Contains("Throne Room"));
+                }
+                else {
+                    Assert.False(dungeon.Portals.GetNeighbors(room).Contains("Billiards"));
+                    Assert.False(dungeon.Portals.GetNeighbors(room).Contains("Throne Room"));
+                }
+            }
+        }
+    }  
 }
