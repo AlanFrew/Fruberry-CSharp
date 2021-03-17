@@ -101,7 +101,7 @@ namespace Fruberry {
             var stack = new Stack<Node>(prefixPath);
 
             foreach (var _ in prefixPath.Last().Children) {
-                matches.AddRange(GetMatchesInner(stack, matches));
+                GetMatchesInner(stack, matches);
             }
 
             var result = new List<string>();
@@ -138,7 +138,7 @@ namespace Fruberry {
             foreach (var child in stack.Peek().Children) {
                 stack.Push(child.Value);
 
-                results.AddRange(GetMatchesInner(stack, results));
+                GetMatchesInner(stack, results);
 
                 stack.Pop();
             }

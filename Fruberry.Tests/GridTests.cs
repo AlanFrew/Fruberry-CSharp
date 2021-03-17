@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using System.Diagnostics;
 
 namespace Fruberry.Tests {
     public class GridGraph<T> : Grid<T> {

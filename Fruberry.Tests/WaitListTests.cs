@@ -47,7 +47,7 @@ namespace Fruberry.Tests {
                 joined.Append(item); 
             }
 
-            Assert.AreEqual("barfoobaz", joined.ToString());
+            Assert.AreEqual("foobarbaz", joined.ToString());
         }
     }
 }

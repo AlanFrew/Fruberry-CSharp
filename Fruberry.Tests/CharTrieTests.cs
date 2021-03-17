@@ -51,12 +51,12 @@ namespace Fruberry.Tests {
 
         [Test]
         public void GetMatchesTest() {
-            var trie = new CharTrie();
-
-            trie.Add("better");
-            trie.Add("butter");
-            trie.Add("bet");
-            trie.Add("butt");
+            var trie = new CharTrie {
+                "better",
+                "butter",
+                "bet",
+                "butt"
+            };
 
             var foo = trie.GetMatches("better");
             Assert.True(foo.Count == 1);
@@ -66,7 +66,7 @@ namespace Fruberry.Tests {
 
             var matches2 = trie.GetMatches("bet");
 
-            Assert.True(matches2.Count == 3);
+            Assert.AreEqual(3, matches2.Count);
             Assert.True(matches2.Contains("bet"));
             Assert.True(matches2.Contains("better"));
             Assert.True(matches2.Contains("betted"));

@@ -462,7 +462,7 @@ namespace Fruberry {
                 //Current = isValid ? (T)Subenumerator.Current : default;
 
                 Collection = collection;
-                index = 0;
+                index = -1;
 
                 //var isValid = MoveNext();
             }

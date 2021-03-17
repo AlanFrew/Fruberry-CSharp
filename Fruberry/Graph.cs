@@ -72,11 +72,12 @@ namespace Fruberry {
         }
 
         public List<T> GetNeighbors(T item) {
+            if (item == null) return new List<T>(0);
             if (Nodes.ContainsKey(item)) {
                 return Nodes[item];
             }
 
-            return null;
+            return new List<T>(0);
         }
 
         public Graph<T> Clear() {
