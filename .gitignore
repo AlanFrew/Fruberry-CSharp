@@ -44,3 +44,5 @@
 /Fruberry.Nuget.Test/bin/Debug/netcoreapp3.1
 /Fruberry.Nuget.Test/obj
 /obj
+/Fruberry.GridTester/bin/Debug/netcoreapp3.1
+/Fruberry.GridTester/obj

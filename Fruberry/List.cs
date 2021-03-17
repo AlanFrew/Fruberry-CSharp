@@ -501,25 +501,40 @@
         public struct Enumerator : IEnumerator<T>, IEnumerator {
             public List<T> List;
             public int Index;
+            private T current;
 
             public Enumerator(List<T> list) {
                 List = list;
                 Index = 0;
+                current = default;
             }
 
             public void Dispose() { }
 
             public bool MoveNext() {
-                if (Index < List.Length) {
-                    Index++;
+                var localList = List;
 
+                if ((uint)Index < (uint)localList.Length) {
+                    current = localList._items[Index];
+                    Index++;
                     return true;
                 }
 
+                Index = List.Length + 1;
+                current = default;
+
                 return false;
+                //if (Index < List.Length) {
+                //    Index++;
+
+                //    return true;
+                //}
+
+                //return false;
             }
 
-            public T Current => Index < List.Length ? List[Index] : default;
+            //public T Current => Index < List.Length ? List[Index] : default;
+            public T Current => current;
 
             object IEnumerator.Current => Current;
 

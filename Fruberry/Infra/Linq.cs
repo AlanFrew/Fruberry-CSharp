@@ -4,10 +4,25 @@ using System.Linq;
 
 namespace Fruberry {
     public static class Linq {
+        public static Random RandomGenerator = new Random();
+
         public static bool None<T>(this IEnumerable<T> source) {
             if (source == null) return true;
 
             return !source.Any();
+        }
+
+        /// <summary>
+        /// Select a random element from an enumerable
+        /// </summary>
+        public static T Random<T>(this IEnumerable<T> enumerable) {
+            if (enumerable?.Any() != true) {
+                return default;
+            }
+
+            var count = enumerable.Count();
+
+            return count == 1 ? enumerable.First() : enumerable.ElementAt(RandomGenerator.Next(0, count));
         }
 
         public static bool Contains(this IEnumerable<IEnumerable<char>> source, string match) {

@@ -18,8 +18,8 @@ namespace Fruberry.Tests {
             Assert.AreEqual(1, rect[0, 0]);
             Assert.AreEqual(2, rect[0, 1]);
 
-            Assert.AreEqual(rect.GetNeigbor(rect[0, 0], Grid<int>.Direction.South), rect[0,1]);
-            Assert.AreEqual(rect.GetNeigbor(rect[0, 1], Grid<int>.Direction.North), rect[0, 0]);
+            Assert.AreEqual(rect.GetNeighbor(rect[0, 0], Grid<int>.Direction.South), rect[0, 1]);
+            Assert.AreEqual(rect.GetNeighbor(rect[0, 1], Grid<int>.Direction.North), rect[0, 0]);
 
             var grid = new Grid<int>(3, 3);
 
@@ -42,34 +42,34 @@ namespace Fruberry.Tests {
             var botleft = grid[0, 2];
 
             Assert.True(topleft == 1);
-            Assert.AreEqual(grid.GetNeigbor(topleft, Grid<int>.Direction.North), default(int));
-            Assert.AreEqual(grid.GetNeigbor(topleft, Grid<int>.Direction.South), midleft);
-            Assert.AreEqual(grid.GetNeigbor(topleft, Grid<int>.Direction.East), topmid);
-            Assert.AreEqual(grid.GetNeigbor(topleft, Grid<int>.Direction.West), default(int));
-            Assert.AreEqual(grid.GetNeigbor(topleft, Grid<int>.Direction.Northeast), default(int));
-            Assert.AreEqual(grid.GetNeigbor(topleft, Grid<int>.Direction.Northwest), default(int));
-            Assert.AreEqual(grid.GetNeigbor(topleft, Grid<int>.Direction.Southwest), default(int));
-            Assert.AreEqual(grid.GetNeigbor(topleft, Grid<int>.Direction.Southeast), middle);
+            Assert.AreEqual(grid.GetNeighbor(topleft, Grid<int>.Direction.North), default(int));
+            Assert.AreEqual(grid.GetNeighbor(topleft, Grid<int>.Direction.South), midleft);
+            Assert.AreEqual(grid.GetNeighbor(topleft, Grid<int>.Direction.East), topmid);
+            Assert.AreEqual(grid.GetNeighbor(topleft, Grid<int>.Direction.West), default(int));
+            Assert.AreEqual(grid.GetNeighbor(topleft, Grid<int>.Direction.Northeast), default(int));
+            Assert.AreEqual(grid.GetNeighbor(topleft, Grid<int>.Direction.Northwest), default(int));
+            Assert.AreEqual(grid.GetNeighbor(topleft, Grid<int>.Direction.Southwest), default(int));
+            Assert.AreEqual(grid.GetNeighbor(topleft, Grid<int>.Direction.Southeast), middle);
 
             Assert.True(botright == 9);
-            Assert.AreEqual(grid.GetNeigbor(botright, Grid<int>.Direction.North), midright);
-            Assert.AreEqual(grid.GetNeigbor(botright, Grid<int>.Direction.South), default(int));
-            Assert.AreEqual(grid.GetNeigbor(botright, Grid<int>.Direction.East), default(int));
-            Assert.AreEqual(grid.GetNeigbor(botright, Grid<int>.Direction.West), botmid);
-            Assert.AreEqual(grid.GetNeigbor(botright, Grid<int>.Direction.Northeast), default(int));
-            Assert.AreEqual(grid.GetNeigbor(botright, Grid<int>.Direction.Northwest), middle);
-            Assert.AreEqual(grid.GetNeigbor(botright, Grid<int>.Direction.Southwest), default(int));
-            Assert.AreEqual(grid.GetNeigbor(botright, Grid<int>.Direction.Southeast), default(int));
+            Assert.AreEqual(grid.GetNeighbor(botright, Grid<int>.Direction.North), midright);
+            Assert.AreEqual(grid.GetNeighbor(botright, Grid<int>.Direction.South), default(int));
+            Assert.AreEqual(grid.GetNeighbor(botright, Grid<int>.Direction.East), default(int));
+            Assert.AreEqual(grid.GetNeighbor(botright, Grid<int>.Direction.West), botmid);
+            Assert.AreEqual(grid.GetNeighbor(botright, Grid<int>.Direction.Northeast), default(int));
+            Assert.AreEqual(grid.GetNeighbor(botright, Grid<int>.Direction.Northwest), middle);
+            Assert.AreEqual(grid.GetNeighbor(botright, Grid<int>.Direction.Southwest), default(int));
+            Assert.AreEqual(grid.GetNeighbor(botright, Grid<int>.Direction.Southeast), default(int));
 
             Assert.True(middle == 5);
-            Assert.AreEqual(grid.GetNeigbor(middle, Grid<int>.Direction.North), topmid);
-            Assert.AreEqual(grid.GetNeigbor(middle, Grid<int>.Direction.South), botmid);
-            Assert.AreEqual(grid.GetNeigbor(middle, Grid<int>.Direction.East), midright);
-            Assert.AreEqual(grid.GetNeigbor(middle, Grid<int>.Direction.West), midleft);
-            Assert.AreEqual(grid.GetNeigbor(middle, Grid<int>.Direction.Northeast), topright);
-            Assert.AreEqual(grid.GetNeigbor(middle, Grid<int>.Direction.Northwest), topleft);
-            Assert.AreEqual(grid.GetNeigbor(middle, Grid<int>.Direction.Southwest), botleft);
-            Assert.AreEqual(grid.GetNeigbor(middle, Grid<int>.Direction.Southeast), botright);
+            Assert.AreEqual(grid.GetNeighbor(middle, Grid<int>.Direction.North), topmid);
+            Assert.AreEqual(grid.GetNeighbor(middle, Grid<int>.Direction.South), botmid);
+            Assert.AreEqual(grid.GetNeighbor(middle, Grid<int>.Direction.East), midright);
+            Assert.AreEqual(grid.GetNeighbor(middle, Grid<int>.Direction.West), midleft);
+            Assert.AreEqual(grid.GetNeighbor(middle, Grid<int>.Direction.Northeast), topright);
+            Assert.AreEqual(grid.GetNeighbor(middle, Grid<int>.Direction.Northwest), topleft);
+            Assert.AreEqual(grid.GetNeighbor(middle, Grid<int>.Direction.Southwest), botleft);
+            Assert.AreEqual(grid.GetNeighbor(middle, Grid<int>.Direction.Southeast), botright);
 
             var middleNeighbors = grid.GetNeighbors(middle, orthogonalOnly: false, excludeDefaults: false);
 
@@ -116,6 +116,9 @@ namespace Fruberry.Tests {
 
             Check.Contains(topleftNeighbors, topmid);
             Check.Contains(topleftNeighbors, midleft);
+
+            Assert.True(grid.GetNeighbor(middle, Grid<int>.Direction.North) == topmid);
+            Assert.True(grid.GetNeighbor(middle, Grid<int>.Direction.Southeast) == botright);
         }
 
         [Test]
