@@ -6,13 +6,10 @@ using System.Text;
 
 namespace Fruberry {
     public class Grid<T> : IStructure<T> {
-        public enum Direction { North = 1, South, East, West, Northeast, Southeast, Southwest, Northwest }
-        public enum OrthogonalDirection { North = 1, South, East, West };
-
-        static protected int _directionCount = Enum.GetValues(typeof(Direction)).Length;
-        static protected int _orthogonalDirectionCount = Enum.GetValues(typeof(OrthogonalDirection)).Length;
-
+        protected static int _directionCount = Enum.GetValues(typeof(Direction)).Length;
+        protected static int _orthogonalDirectionCount = Enum.GetValues(typeof(OrthogonalDirection)).Length;
         protected T[,] Cells;
+        public static ExceptionBehavior ExceptionBehavior = ExceptionBehavior.BestEffort;
 
         public Dictionary<T, (int, int)> Map = new Dictionary<T, (int, int)>();
 
@@ -35,7 +32,7 @@ namespace Fruberry {
             set => Length = value;
         }
 
-        public virtual (int Rows, int Columns) Dimensions => (Cells.GetLength(1), Cells.GetLength(0));
+        public virtual (int Rows, int Columns) Dimensions => (Cells.GetLength(0), Cells.GetLength(1));
 
         public Grid(int rows, int columns) {
             Cells = new T[rows, columns];
@@ -43,9 +40,76 @@ namespace Fruberry {
 
         public virtual T this[int row, int column] {
             get {
+                if (row < 0) {
+                    switch (ExceptionBehavior) {
+                        case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(row), row, "Row must be nonnegative");
+                        case ExceptionBehavior.Abort: return default;
+                        default: row = 0; break;
+                    }
+                }
+                if (row >= Dimensions.Rows) {
+                    switch (ExceptionBehavior) {
+                        case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(row), row, "Row must be less than Dimenions.Rows");
+                        case ExceptionBehavior.Abort: return default;
+                        default:
+                            if (row == 0) return default;
+                            row = Dimensions.Rows - 1;
+                            break;
+                    }
+                }
+                if (column < 0) {
+                    switch (ExceptionBehavior) {
+                        case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(column), column, "Column must be nonnegative");
+                        case ExceptionBehavior.Abort: return default;
+                        default: column = 0; break;
+                    }
+                }
+                if (column >= Dimensions.Columns) {
+                    switch (ExceptionBehavior) {
+                        case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(column), column, "Column must be less than Dimenions.Columns");
+                        case ExceptionBehavior.Abort: return default;
+                        default:
+                            if (column == 0) return default;
+                            column = Dimensions.Columns - 1;
+                            break;
+                    }
+                }
+
                 return Cells[row, column];
             }
             set {
+                if (row < 0) {
+                    switch (ExceptionBehavior) {
+                        case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(row), row, "Row must be nonnegative");
+                        case ExceptionBehavior.Abort: return;
+                        default: row = 0; break;
+                    }
+                }
+                if (row >= Dimensions.Rows) {
+                    switch (ExceptionBehavior) {
+                        case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(row), row, "Row must be less than Dimensions.Rows");
+                        case ExceptionBehavior.Abort: return;
+                        default: row = Dimensions.Rows - 1; break;
+                    }
+                }
+                if (column < 0) {
+                    switch (ExceptionBehavior) {
+                        case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(column), column, "Column must be nonnegative");
+                        case ExceptionBehavior.Abort: return;
+                        default: column = 0; break;
+                    }
+                }
+                if (column >= Length) {
+                    switch (ExceptionBehavior) {
+                        case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(column), column, "Column must be less than Dimensions.Columns");
+                        case ExceptionBehavior.Abort: return;
+                        default:
+                            if (column == 0) return;
+                            column = Length - 1;
+                            break;
+                    }
+                }
+
                 var oldValue = Cells[row, column];
                 if (oldValue != null) Map.Remove(oldValue);
 
@@ -94,14 +158,21 @@ namespace Fruberry {
             return (row == 0 || column == 0 || row == Dimensions.Rows || column == Dimensions.Columns);
         }
 
-        public IList<Tuple<int, int>> CellsWhere(Func<T, bool> selector) {
-            var result = new List<Tuple<int, int>>(Length);
+        public IList<(int, int)> CellsWhere(Func<T, bool> selector) {
+            if (selector == null) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentNullException(nameof(selector));
+                    default: return new List<(int, int)>();
+                }
+            }
+
+            var result = new List<(int, int)>(Length);
 
             if (selector == null) return result;
 
             for(var i = 0; i < Dimensions.Rows; i++) {
                 for (var j = 0; j < Dimensions.Columns; j++) {
-                    if (selector(this[i, j])) result.Add(new Tuple<int, int>(i, j));
+                    if (selector(this[i, j])) result.Add((i, j));
                 }
             }
 

@@ -26,7 +26,7 @@ namespace Fruberry.GridTester {
 
                 dungeon[rows / 2, columns / 2] = 'S';
 
-                var directions = new List<Grid<char>.Direction>((Grid<char>.Direction[])Enum.GetValues(typeof(Grid<char>.OrthogonalDirection)));
+                var directions = new List<Direction>((Direction[])Enum.GetValues(typeof(OrthogonalDirection)));
 
                 while (roomCount > 0) {
                     var perimeter = dungeon.CellsWhere(room => room != '.')
@@ -34,8 +34,8 @@ namespace Fruberry.GridTester {
                         .Count() >= 3);
 
                     if (perimeter.None()) {
-                        //Console.Write(dungeon);
-                        //Debugger.Break();
+                        Console.Write(dungeon);
+                        Debugger.Break();
 
                         perimeter = dungeon.CellsWhere(room => room != '.')
                          .Where((coords) => dungeon.GetNeighbors(coords.Item1, coords.Item2, selector: space => space == '.')

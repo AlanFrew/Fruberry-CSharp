@@ -4,22 +4,53 @@
     using System.Collections.ObjectModel;
     using System.Collections.Generic;
     using System.Collections;
-    using System.Linq;
+
+    internal sealed class CollectionDebugView<T> {
+        private ICollection<T> collection;
+
+        public CollectionDebugView(ICollection<T> collection) {
+            this.collection = collection;
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public T[] Items {
+            get {
+                T[] items = new T[collection.Count];
+                collection.CopyTo(items, 0);
+                return items;
+            }
+        }
+    }
 
     [DebuggerDisplay("Count = {Count}")]
+    [DebuggerTypeProxy(typeof(CollectionDebugView<>))]
     [Serializable]
-    public class List<T> : IList<T>, IList {
+    public class List<T> : IList<T>, IList, IStructure<T> {
         protected static T[] _emptyArray = new T[0];
-        protected static int _defaultCapacity = 1;
+        protected static int _defaultCapacity = 2;
         protected static float CapacityMultiplier = 1.5f;
+        public static ExceptionBehavior ExceptionBehavior = ExceptionBehavior.BestEffort;
         protected T[] _items;
-        private int Length;
+
+        public int Length { get; protected set; }
+
+        int IStructure<T>.Length {
+            get => Length;
+            set => Length = value;
+        }
 
         public List() {
             _items = _emptyArray;
         }
 
         public List(int capacity) {
+            if (capacity < 0) {
+                capacity = ExceptionBehavior switch {
+                    ExceptionBehavior.Throw => throw new ArgumentOutOfRangeException(nameof(capacity), capacity, "Capacity must be nonnegative"),
+                    _ => 0,
+                };
+            }
+
             _items = capacity == 0 ? _emptyArray : (new T[capacity]);
         }
 
@@ -28,15 +59,22 @@
         /// </summary>
         /// <remarks>Size and capacity are preserved</remarks>
         public List(IEnumerable<T> source) {
-            if (source is ICollection<T> c) {
-                var count = c.Count;
+            if (source == null) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentNullException(nameof(source));
+                    default: Capacity = 0; return;
+                }
+            }
+
+            if (source is ICollection<T> collection) {
+                var count = collection.Count;
                 if (count == 0) {
                     _items = _emptyArray;
                 }
                 else {
                     _items = new T[count];
 
-                    c.CopyTo(_items, 0);
+                    collection.CopyTo(_items, 0);
 
                     Length = count;
                 }
@@ -45,9 +83,9 @@
                 Length = 0;
                 _items = _emptyArray;
 
-                using (IEnumerator<T> en = source.GetEnumerator()) {
-                    while (en.MoveNext()) {
-                        Add(en.Current);
+                using (var enumerator = source.GetEnumerator()) {
+                    while (enumerator.MoveNext()) {
+                        Add(enumerator.Current);
                     }
                 }
             }
@@ -56,6 +94,13 @@
         public int Capacity {
             get => _items.Length;
             set {
+                if (value < Length) {
+                    switch (ExceptionBehavior) {
+                        case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(Capacity), Capacity, $"Capacity must be nonnegative and no less than the current Length of the list ({Length})");
+                        default: return;
+                    }
+                }
+
                 if (value == _items.Length) return;
 
                 if (value > 0) {
@@ -84,17 +129,61 @@
 
         object ICollection.SyncRoot => null;
 
-        public List<T> ToList(IEnumerable<T> source) {
-            if (source is List<T>) {
-                return (List<T>)source;
-            }
+        public IList<Prefer> Constraints => new[] { Prefer.AllowDupes, Prefer.Add };
 
-            return new List<T>(source.ToList()); //TODO: replace call to ToList() to avoid double copying
-        }
+        //public List<T> ToList(IEnumerable<T> source) {
+        //    if (source == null) {
+        //        switch (ExceptionBehavior) {
+        //            case ExceptionBehavior.Throw: throw new ArgumentNullException(nameof(source));
+        //            default: return this;
+        //        }
+        //    }
+
+        //    if (source is List<T> list) return list;
+
+        //    return new List<T>(source.ToList()); //TODO: replace call to ToList() to avoid double copying
+        //}
 
         public T this[int index] {
-            get => _items[index];
-            set => _items[index] = value;
+            get {
+                if (index < 0) {
+                    switch (ExceptionBehavior) {
+                        case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(index), index, "Index must be nonnegative");
+                        case ExceptionBehavior.Abort: return default;
+                        default: index = 0; break;
+                    }
+                }
+                if (index >= Length) {
+                    switch (ExceptionBehavior) {
+                        case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(index), index, "Index must be less than Length");
+                        case ExceptionBehavior.Abort: return default;
+                        default: 
+                            if (index == 0) return default;
+                            index = Length - 1;
+                            break;
+                    }
+                }
+                    
+                return _items[index];
+            }
+            set {
+                if (index < 0) {
+                    switch (ExceptionBehavior) {
+                        case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(index), index, "Index must be nonnegative");
+                        case ExceptionBehavior.Abort: return;
+                        default: index = 0; break;
+                    }
+                }
+                if (index >= Length) {
+                    switch (ExceptionBehavior) {
+                        case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(index), index, "Index must be less than Length");
+                        case ExceptionBehavior.Abort: return;
+                        default: index = Length - 1; break;
+                    }
+                }
+
+                _items[index] = value;
+            }
         }
 
         object IList.this[int index] {
@@ -107,10 +196,18 @@
         public void Add(T item) {
             if (Length == _items.Length) AdjustCapacity(Length + 1);
 
-            _items[Length++] = item;
+            _items[Length] = item;
+
+            Length++;
         }
 
         int IList.Add(object item) {
+            if (!item.GetType().IsAssignableFrom(typeof(T))) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(item), item, $"Item must be of type {typeof(T)}");
+                    default: return -1;
+                }
+            }
             Add((T)item);
            
             return Count - 1;
@@ -125,13 +222,26 @@
         }
 
         /// <summary>
-        /// 
+        /// Searches the List for the given value
         /// </summary>
-        /// <remarks>Apply bitwise complement (~) to a negative result to produce the index of the first element that is larger than the given search value. This is also the index at which
-        /// the search value should be inserted into the list in order for the list
-        /// to remain sorted.</remarks>
+        /// <remarks>The given section of the List must be sorted. Apply bitwise complement (~) to a negative result to produce the index of the first element that is larger than the given search value. This is also the index at which the search value should be inserted into the list in order for the list to remain sorted.</remarks>
+        /// <returns>The index of an arbitrary matching value if there is one, or a negative integer otherwise</returns>
         public int BinarySearch(T item, IComparer<T> comparer = null, int index = 0, int count = -1) {
-            if (count < 0) count = Length - index;
+            if (index < 0 || index >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(count), count, $"Index must be nonnegative and less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return int.MinValue;
+                    default: count = Length - index; break;
+                }
+            }
+
+            if (count < 0 || count + index >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(count), count, $"Count must be nonnegative and less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return int.MinValue;
+                    default: count = Length - index; break;
+                }
+            }
 
             return Array.BinarySearch(_items, index, count, item, comparer);
         }
@@ -168,6 +278,13 @@
         }
 
         public List<TOutput> ConvertAll<TOutput>(Converter<T, TOutput> converter) {
+            if (converter == null) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentNullException(nameof(converter));
+                    default: return new List<TOutput>();
+                }
+            }
+
             var list = new List<TOutput>(Length);
 
             for (var i = 0; i < Length; i++) {
@@ -179,12 +296,47 @@
             return list;
         }
 
-        void ICollection.CopyTo(Array array, int arrayIndex) {
-            Array.Copy(_items, 0, array, arrayIndex, Length);
+        public void CopyTo(Array array, int arrayIndex) {
+            if (array == null) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentNullException(nameof(array), $"Array must be nonnull");
+                    case ExceptionBehavior.Abort: return;
+                    default: array = new Array[Length]; break;
+                }
+            }
+
+            if (arrayIndex < 0 || arrayIndex >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(arrayIndex), arrayIndex, $"ArrayIndex must be nonnegative and less than target array Length ({array.Length})");
+                    case ExceptionBehavior.Abort: return;
+                    default: arrayIndex = Math.Max(array.Length - Length, 0); break;
+                }
+            }
+
+            var copyLength = arrayIndex + Length;
+            if (copyLength > array.Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new InvalidOperationException($"ArrayIndex plus Length of this structure must be no greater than the Length of the target array ({array.Length})");
+                    case ExceptionBehavior.Abort: break;
+                    default:
+                        copyLength = array.Length;
+                        break;
+                }
+            }
+
+            try {
+                Array.Copy(_items, 0, array, arrayIndex, copyLength);
+            }
+            catch(Exception ex) {
+                switch(ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new Exception("Failed to copy to the target array. See InnerException for details", ex);
+                    default: break;
+                }
+            }
         }
 
-        void ICollection<T>.CopyTo(T[] array, int arrayIndex) {
-            Array.Copy(_items, 0, array, arrayIndex, Length);
+        public void CopyTo(T[] array, int arrayIndex) {
+           CopyTo((Array)array, arrayIndex);
         }
 
         protected int MaxArrayLength = 0X7FEFFFFF;
@@ -207,6 +359,13 @@
         }
 
         public T Find(Predicate<T> match) {
+            if (match == null) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentNullException("Match must be nonnull");
+                    default: return default;
+                }
+            }
+
             for (var i = 0; i < Length; i++) {
                 if (match(_items[i])) return _items[i];
             }
@@ -215,6 +374,13 @@
         }
 
         public List<T> FindAll(Predicate<T> match) {
+            if (match == null) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentNullException("Match must be nonnull");
+                    default: return default;
+                }
+            }
+
             var list = new List<T>();
 
             for (var i = 0; i < Length; i++) {
@@ -227,11 +393,30 @@
         }
 
         public int FindIndex(Predicate<T> match, int startIndex = 0, int count = -1) {
-            if (count < 0) count = Length - startIndex;
+            if (match == null) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentNullException("Match must be nonnull");
+                    default: return default;
+                }
+            }
 
-            int endIndex = startIndex + count;
+            if (startIndex < 0 || startIndex >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(startIndex), startIndex, $"StartIndex must be nonnegative and less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return int.MinValue;
+                    default: startIndex = 0; break;
+                }
+            }
 
-            for (var i = startIndex; i < endIndex; i++) {
+            if (count < 0 || count + startIndex >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(count), count, $"Count must be nonnegative and less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return int.MinValue;
+                    default: count = Length - startIndex; break;
+                }
+            }
+
+            for (var i = startIndex; i < startIndex + count; i++) {
                 if (match(_items[i])) return i;
             }
 
@@ -239,6 +424,13 @@
         }
 
         public T FindLast(Predicate<T> match) {
+            if (match == null) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentNullException("Match must be nonnull");
+                    default: return default;
+                }
+            }
+
             for (var i = Length - 1; i >= 0; i--) {
                 if (match(_items[i])) {
                     return _items[i];
@@ -249,13 +441,23 @@
         }
 
         public int FindLastIndex(Predicate<T> match, int startIndex = -1, int count = -1) {
-            if (startIndex < 0) startIndex = Length - 1;
-            if (count < 0) count = startIndex + 1;
+            if (startIndex < 0 || startIndex >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(startIndex), startIndex, $"StartIndex must be nonnegative and less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return int.MinValue;
+                    default: startIndex = 0; break;
+                }
+            }
 
-            // this also handles when startIndex == MAXINT, so MAXINT - 0 + 1 == -1, which is < 0.
-            int endIndex = startIndex - count;
+            if (count < 0 || count + startIndex >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(count), count, $"Count must be nonnegative and StartIndex + Count must be less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return int.MinValue;
+                    default: count = Length - startIndex; break;
+                }
+            }
 
-            for (var i = startIndex; i > endIndex; i--) {
+            for (var i = startIndex; i > startIndex - count; i--) {
                 if (match(_items[i])) {
                     return i;
                 }
@@ -265,9 +467,34 @@
         }
 
         public void ForEach(Action<T> action) {
+            if (action == null) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentNullException("Match must be nonnull");
+                    default: return;
+                }
+            }
+
             for (var i = 0; i < Length; i++) {
                 action(_items[i]);
             }
+        }
+
+        protected virtual bool Validate() {
+            if (Capacity != _items.Length) return false;
+            if (Length > Capacity) return false;
+            if (Length < 0 || Capacity < 0) return false;
+
+            var comparer = EqualityComparer<T>.Default;
+            var index = 0;
+
+            foreach (var item in this) {
+                if (comparer.Equals(item)) return false;
+                if (!this[index].Equals(item)) return false;
+
+                index++;
+            }
+
+            return true;
         }
 
         public Enumerator GetEnumerator() {
@@ -282,10 +509,26 @@
             return new Enumerator(this);
         }
 
-        public List<T> GetRange(int index, int count) {
+        public List<T> GetRange(int startIndex, int count) {
             var list = new List<T>(count);
 
-            Array.Copy(_items, index, list._items, 0, count);
+            if (startIndex < 0 || startIndex >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(startIndex), startIndex, $"StartIndex must be nonnegative and less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return list;
+                    default: startIndex = 0; break;
+                }
+            }
+
+            if (count < 0 || count + startIndex >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(count), count, $"Count must be nonnegative and StartIndex + Count must be less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return list;
+                    default: count = Length - startIndex; break;
+                }
+            }
+
+            Array.Copy(_items, startIndex, list._items, 0, count);
 
             list.Length = count;
 
@@ -304,13 +547,35 @@
             return -1;
         }
 
-        public int IndexOf(T item, int index = 0, int count = -1) {
-            if (count < 0) count = Length - index;
+        public int IndexOf(T item, int startIndex = 0, int count = -1) {
+            if (startIndex < 0 || startIndex >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(startIndex), startIndex, $"StartIndex must be nonnegative and less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return int.MinValue;
+                    default: startIndex = 0; break;
+                }
+            }
 
-            return Array.IndexOf(_items, item, index, count);
+            if (count < 0 || count + startIndex >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(count), count, $"Count must be nonnegative and StartIndex + Count must be less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return int.MinValue;
+                    default: count = Length - startIndex; break;
+                }
+            }
+
+            return Array.IndexOf(_items, item, startIndex, count);
         }
 
         public void Insert(int index, T item) {
+            if (index < 0 || index >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(index), index, $"StartIndex must be nonnegative and less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return;
+                    default: index = 0; break;
+                }
+            }
+
             if (Length == _items.Length) {
                 AdjustCapacity(Length + 1);
             }
@@ -328,28 +593,43 @@
             Insert(index, (T)item);
         }
 
-        public void InsertRange(int index, IEnumerable<T> source) {
+        public void InsertRange(int startIndex, IEnumerable<T> source) {
+            if (source == null) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentNullException("Match must be nonnull");
+                    default: return;
+                }
+            }
+
+            if (startIndex < 0 || startIndex >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(startIndex), startIndex, $"StartIndex must be nonnegative and less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return;
+                    default: startIndex = 0; break;
+                }
+            }
+
             if (source is ICollection<T> collection) {
                 var count = collection.Count;
                 if (count > 0) {
                     AdjustCapacity(Length + count);
 
-                    if (index < Length) {
-                        Array.Copy(_items, index, _items, index + count, Length - index);
+                    if (startIndex < Length) {
+                        Array.Copy(_items, startIndex, _items, startIndex + count, Length - startIndex);
                     }
 
                     // handle inserting the list into itself
                     if (this == collection) {
-                        Array.Copy(_items, 0, _items, index, index);
+                        Array.Copy(_items, 0, _items, startIndex, startIndex);
 
-                        Array.Copy(_items, index + count, _items, index * 2, Length - index);
+                        Array.Copy(_items, startIndex + count, _items, startIndex * 2, Length - startIndex);
                     }
                     else {
                         var itemsToInsert = new T[count];
 
                         collection.CopyTo(itemsToInsert, 0);
 
-                        itemsToInsert.CopyTo(_items, index);
+                        itemsToInsert.CopyTo(_items, startIndex);
                     }
 
                     Length += count;
@@ -359,18 +639,31 @@
                 using IEnumerator<T> en = source.GetEnumerator();
 
                 while (en.MoveNext()) {
-                    Insert(index++, en.Current);
+                    Insert(startIndex++, en.Current);
                 }
             }
         }
 
-        public int LastIndexOf(T item, int index = -1, int count = -1) {
-            if (index < 0) index = _items.Length - 1;
-            if (count < 0) count = _items.Length;
+        public int LastIndexOf(T item, int startIndex = -1, int count = -1) {
+            if (startIndex < 0 || startIndex >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(startIndex), startIndex, $"StartIndex must be nonnegative and less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return int.MinValue;
+                    default: startIndex = 0; break;
+                }
+            }
 
-            if (Length == 0) return -1;
+            if (count < 0 || count + startIndex >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(count), count, $"Count must be nonnegative and StartIndex + Count must be less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return int.MinValue;
+                    default: count = Length - startIndex; break;
+                }
+            }
 
-            return Array.LastIndexOf(_items, item, index, count);
+            //if (Length == 0) return -1;
+
+            return Array.LastIndexOf(_items, item, startIndex, count);
         }
 
         public bool Remove(T item) {
@@ -390,6 +683,13 @@
         }
   
         public int RemoveAll(Predicate<T> match) {
+            if (match == null) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentNullException("Match must be nonnull");
+                    default: return 0;
+                }
+            }
+
             var freeIndex = 0;
 
             while (freeIndex < Length && !match(_items[freeIndex])) freeIndex++;
@@ -415,31 +715,67 @@
         }
 
         public void RemoveAt(int index) {
+            if (index < 0 || index >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(index), index, $"Index must be nonnegative and less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return;
+                    default: index = 0; break;
+                }
+            }
+
             Length--;
 
             if (index < Length) {
-                Array.Copy(_items, index + 1, _items, index, Length - index);
+                Array.Copy(_items, index + 1, _items, index, Length - index); //move subsequent forward to fill the gap, but don't change capacity
             }
 
             _items[Length] = default;
         }
 
-        public void RemoveRange(int index, int count) {
-            if (count <= 0) return;
+        public void RemoveRange(int startIndex, int count) {
+            if (startIndex < 0 || startIndex >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(startIndex), startIndex, $"StartIndex must be nonnegative and less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return;
+                    default: startIndex = 0; break;
+                }
+            }
+
+            if (count < 0 || count + startIndex >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(count), count, $"Count must be nonnegative and StartIndex + Count must be less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return;
+                    default: count = Length - startIndex; break;
+                }
+            }
 
             Length -= count;
 
-            if (index < Length) {
-                Array.Copy(_items, index + count, _items, index, Length - index);
+            if (startIndex < Length) {
+                Array.Copy(_items, startIndex + count, _items, startIndex, Length - startIndex);
             }
 
             Array.Clear(_items, Length, count);
         }
 
-        public void Reverse(int index = 0, int count = -1) {
-            if (count < 0) count = Length;
+        public void Reverse(int startIndex = 0, int count = -1) {
+            if (startIndex < 0 || startIndex >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(startIndex), startIndex, $"StartIndex must be nonnegative and less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return;
+                    default: startIndex = 0; break;
+                }
+            }
 
-            Array.Reverse(_items, index, count);
+            if (count < 0 || count + startIndex >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(count), count, $"Count must be nonnegative and StartIndex + Count must be less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return;
+                    default: count = Length - startIndex; break;
+                }
+            }
+
+            Array.Reverse(_items, startIndex, count);
         }
 
         public void Sort() {
@@ -450,10 +786,24 @@
             Sort(0, Length, comparer);
         }
 
-        public void Sort(int index = 0, int count = -1, IComparer<T> comparer = null) {
-            if (count < 0) count = Length;
+        public void Sort(int startIndex = 0, int count = -1, IComparer<T> comparer = null) {
+            if (startIndex < 0 || startIndex >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(startIndex), startIndex, $"StartIndex must be nonnegative and less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return;
+                    default: startIndex = 0; break;
+                }
+            }
 
-            Array.Sort(_items, index, count, comparer);
+            if (count < 0 || count + startIndex >= Length) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentOutOfRangeException(nameof(count), count, $"Count must be nonnegative and StartIndex + Count must be less than Length ({Length})");
+                    case ExceptionBehavior.Abort: return;
+                    default: count = Length - startIndex; break;
+                }
+            }
+
+            Array.Sort(_items, startIndex, count, comparer);
         }
 
         //public void Sort(Comparison<T> comparison) {
@@ -482,6 +832,13 @@
         }
 
         public bool TrueForAll(Predicate<T> match) {
+            if (match == null) {
+                switch (ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new ArgumentNullException("Match must be nonnull");
+                    default: return false;
+                }
+            }
+
             for (var i = 0; i < Length; i++) {
                 if (!match(_items[i])) return false;
             }
@@ -491,6 +848,51 @@
 
         protected bool IsCompatibleObject(object value) {        
             return (value is T) || (value == null && default(T) == null); // only accept nulls if T is a class or Nullable<U>.
+        }
+
+        IStructure<T> IStructure<T>.Add(T item) {
+            Add(item);
+
+            return this;
+        }
+
+        int IStructure<T>.Count() {
+            return Length;
+        }
+
+        IStructure<T> IStructure<T>.Clear() {
+            Clear();
+
+            return this;
+        }
+
+        public T Pop() {
+            var result = this[Length - 1];
+
+            RemoveAt(Length - 1);
+
+            return result;
+        }
+
+        public T Peek() {
+            if (Length == 0) {
+                switch(ExceptionBehavior) {
+                    case ExceptionBehavior.Throw: throw new InvalidOperationException("Peek must be called on a nonempty structure");
+                    default: return default;
+                }
+            }
+
+            return this[Length - 1];
+        }
+
+        public IStructure<T> Enqueue(T item) {
+            Add(item);
+
+            return this;
+        }
+
+        public T Dequeue() {
+            return Pop();
         }
 
         //internal static IList<T> Synchronized(List<T> list) {
